@@ -416,7 +416,9 @@ function Cart() {
                   transition={{ delay: 0.5 }}
                   className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-medium rounded-full hover:shadow-lg transition-all duration-300"
                 >
-                  Proceed to Checkout
+                 <Link to={"/checkout"}>
+                 Proceed to Checkout
+                 </Link>
                 </motion.button>
                 
                 {/* Payment Methods */}

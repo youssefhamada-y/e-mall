@@ -1,60 +1,64 @@
 import { Link } from "react-router-dom";
-// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { usercontext } from "../Components/Context/UserContext/UserContext";
+import axios from "axios";
 
 export default function Stores() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredStores, setFilteredStores] = useState([]);
+  const { token } = useContext(usercontext);
+  const [loading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stores, setStores] = useState([]);
 
-  const stores = [
-    {
-      name: "Zara",
-      description: "Contemporary fashion and trending styles for everyone",
-      image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Zara_Logo.svg/1200px-Zara_Logo.svg.png",
-      path: "/stores/zara"
-    },
-    {
-      name: "H&M", 
-      description: "Affordable fashion for the whole family",
-      image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/H%26M-Logo.svg/1200px-H%26M-Logo.svg.png",
-      path: "/stores/hm"
-    },
-    {
-      name: "Uniqlo",
-      description: "Simple made better with quality basics",
-      image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UNIQLO_logo.svg/1200px-UNIQLO_logo.svg.png",
-      path: "/stores/uniqlo"
-    },
-    {
-      name: "Nike",
-      description: "Premium sportswear and athletic gear",
-      image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
-      logo: "https://media.about.nike.com/img/cf68f541-fc92-4373-91cb-086ae0fe2f88/001-nike-logos-swoosh-black.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjo1MDAwLCJoZWlnaHQiOjI4MTN9LCJyZXNpemUiOnsid2lkdGgiOjE5MjB9fX0%3D&s=4617fc4ca48a0336d90d25001a63e65147c95885bad727aa1b5473cf672dc459", 
-      path: "/stores/nike"
-    },
-    {
-      name: "Adidas",
-      description: "Iconic sportswear and street style",
-      image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1200px-Adidas_Logo.svg.png",
-      path: "/stores/adidas"
-    },
-    {
-      name: "Pull&Bear",
-      description: "Young and casual street fashion",
-      image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
-      logo: "https://www.logo.wine/a/logo/Pull%26Bear/Pull%26Bear-Logo.wine.svg",
-      path: "/stores/pullbear"
+  async function fetchStores() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const options = {
+        url: "http://localhost/eMall/stores/getAllStores.php",
+        method: "GET",
+        headers: { 
+           'Authorization': token
+        },
+      };
+      const response = await axios.request(options);
+      const fetchedStores = response.data?.data || [];
+      
+      if (fetchedStores.length === 0) {
+        throw new Error("No stores returned from API");
+      }
+      
+      const formattedStores = fetchedStores.map(store => ({
+        id: store.store_id,
+        name: store.store_name,
+        description: store.description || "Store description not available",
+        image: store.image || "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
+        logo: store.store_logo || "https://via.placeholder.com/150",
+        path: `/stores/${store.store_id}`
+      }));
+      
+      setStores(formattedStores);
+      setFilteredStores(formattedStores);
+      console.log("Stores loaded:", formattedStores);
+    } catch (error) {
+      setError(error.message);
+      console.error("Error fetching stores:", error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  }
+
+  useEffect(() => {
+    fetchStores();
+  }, []);
 
   // Enhanced search with debouncing and better filtering
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
+      if (!stores.length) return;
+      
       const results = stores.filter(store => {
         const searchLower = searchTerm.toLowerCase().trim();
         const nameLower = store.name.toLowerCase();
@@ -76,7 +80,7 @@ export default function Stores() {
     }, 300); // 300ms delay for debouncing
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+  }, [searchTerm, stores]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -115,6 +119,42 @@ export default function Stores() {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-14 flex justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <div className="w-16 h-16 border-t-4 border-b-4 border-blue-500 rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading stores...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-14">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-2xl mx-auto"
+        >
+          <strong className="font-bold">Error:</strong>
+          <span className="block sm:inline"> {error}</span>
+          <button 
+            onClick={fetchStores} 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-all"
+          >
+            Try Again
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -166,14 +206,15 @@ export default function Stores() {
         >
           {filteredStores.map((store, index) => (
             <motion.div 
-              key={store.name} 
+              key={store.id} 
               variants={cardVariants}
               initial="hidden"
               animate="visible"
               whileHover="hover"
               custom={index}
             >
-              <Link to={store.path} className="block">
+              <Link to={store.path} className="block"
+              state={{storeData: store}}>
                 <motion.div 
                   className="bg-white rounded-2xl shadow-lg overflow-hidden"
                   whileTap={{ scale: 0.95 }}
@@ -187,14 +228,14 @@ export default function Stores() {
                       transition={{ duration: 0.3 }}
                     />
                     <motion.div 
-                      className="absolute top-4 left-4 bg-white p-2 rounded-full shadow-md"
+                      className="absolute top-2 left-2 p-2 bg-white rounded-full"
                       whileHover={{ scale: 1.1, rotate: 360 }}
                       transition={{ duration: 0.5 }}
                     >
                       <img 
                         src={store.logo}
                         alt={`${store.name} Logo`}
-                        className="w-10 h-10 object-contain"
+                        className="w-16 h-16 rounded-full object-contain"
                       />
                     </motion.div>
                   </div>
@@ -205,13 +246,29 @@ export default function Stores() {
                     transition={{ delay: 0.2 }}
                   >
                     <h3 className="text-2xl font-semibold text-gray-800 mb-2">{store.name}</h3>
-                    <p className="text-gray-600">{store.description}</p>
+                    <p className="text-gray-600 line-clamp-2">{store.description}</p>
                   </motion.div>
                 </motion.div>
               </Link>
             </motion.div>
           ))}
         </motion.div>
+
+        {filteredStores.length === 0 && !searchTerm && !loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-10"
+          >
+            <p className="text-gray-500 text-xl">No stores available at the moment.</p>
+            <button 
+              onClick={fetchStores} 
+              className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+            >
+              Refresh
+            </button>
+          </motion.div>
+        )}
       </div>
     </>
   );

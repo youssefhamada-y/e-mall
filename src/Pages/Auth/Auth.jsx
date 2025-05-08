@@ -102,7 +102,7 @@ function Auth() {
   async function login(values) {
     try {
       const options = {
-        url: `http://localhost/eMall/Authentication/login.php`,
+        url: `http://localhost/eMall/Authentication/logintest.php`,
         method: "POST",
         data: values,
       };
@@ -116,31 +116,30 @@ function Auth() {
         return; // Stop execution if there's an error
       }
 
-      if (response.data.message==="Login successful") {
-      
+      if (response.data.message === "Login successful") {
         toast.success("Login Successful");
 
         // Introduce a delay between "Login Successful" and role-based toast
         setTimeout(() => {
           if (response.data.user.role === "user") {
-            localStorage.setItem("token", response.data.user.token);
+            localStorage.setItem("token", response.data.user.token); // FIXED: Changed from response.data.token
 
             // Set the token state
-            settoken(response.data.token)
+            settoken(response.data.user.token) // FIXED: Changed from response.data.token
             toast.success("Redirecting to User Home...");
             setTimeout(() => navigate("/"), 2000);
           } else if (response.data.user.role === "mallAdmin") {
-            localStorage.setItem("token", response.data.token);
+            localStorage.setItem("token", response.data.user.token); // FIXED: Changed from response.data.token
 
             // Set the token state
-            settoken(response.data.token)
+            settoken(response.data.user.token) // FIXED: Changed from response.data.token
             toast.success("Redirecting to Mall Admin Dashboard...");
             setTimeout(() => navigate("/admin/home"), 2000);
           } else if (response.data.user.role === "storeAdmin") {
-            localStorage.setItem("token", response.data.token);
+            localStorage.setItem("token", response.data.user.token); // FIXED: Changed from response.data.token
 
             // Set the token state
-            settoken(response.data.token)
+            settoken(response.data.user.token) // FIXED: Changed from response.data.token
             toast.success("Redirecting to Store Admin Dashboard...");
             setTimeout(() => navigate("/store/home"), 2000);
           }

@@ -11,19 +11,21 @@ import { Toaster } from "react-hot-toast";
 import ProtectedRoute from "./Pages/Components/ProtectedRoute/ProtectedRoute";
 import NotFoundPage from "./Pages/NotFoundPage/NotFoundPage";
 import Stores from "./Pages/Stores/Stores";
-import Zara from "./Pages/Stores/Zara";
 import ForgetPassword from "./Pages/ForgetPassword/ForgetPassword";
 import VerifyOtp from "./Pages/VerifyOtp/VerifyOtp";
 import ResetPassword from "./Pages/ResetPassword/ResetPassword";
 import Userprovider from "./Pages/Components/Context/UserContext/UserContext";
 import Categories from "./Pages/Categories/Categories";
-import Brands from "./Pages/Brands/Brands";
 import UserProfile from "./Pages/UserProfile/UserProfile";
 import Compare from "./Pages/Compare/Compare";
 import Wishlist from "./Pages/Wishlist/Wishlist";
 import ChatBot from "./Pages/ChatBot/ChatBot";
 import Cart from "./Pages/Cart/Cart";
 import Orders from "./Pages/Orders/Orders";
+import ProductDetails from "./Pages/ProductDetails/ProductDetails";
+import AboutUs from "./Pages/AboutUs/AboutUs";
+import Checkout from "./Pages/Checkout/Checkout";
+import StoreProducts from "./Pages/Stores/StoreProducts";
 function App() {
   const routes = createBrowserRouter([
     {
@@ -41,13 +43,15 @@ function App() {
         { path: "categories", element: <Categories /> },
         { path: "stores", element: <Stores /> },
         {path:"chatbot",element:<ChatBot/>},
-        { path: "brands", element: <Brands /> },
         { path: "userprofile", element: <UserProfile /> },
         { path: "compare", element: <Compare /> },
         { path: "cart", element: <Cart /> },
         { path: "wishlist", element: <Wishlist /> },
-        {path:"/stores/zara",element:<Zara/>},
-        {path:"orders",element:<Orders/>}
+        {path:"/stores/:store_id",element:<StoreProducts/>},
+        {path:"orders",element:<Orders/>},
+        {path:"/productdetails/:productid",element:<ProductDetails/>},
+        {path:"aboutus",element:<AboutUs/>},
+        {path:"checkout",element:<Checkout/>}
       ],
     },
     {
