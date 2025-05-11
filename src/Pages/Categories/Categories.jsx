@@ -1,107 +1,129 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
+import { usercontext } from '../Components/Context/UserContext/UserContext'
+import axios from 'axios'
 
 export default function Categories() {
   const [categories, setCategories] = useState([])
+  const [subCategories, setSubCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [subCatLoading, setSubCatLoading] = useState(true)
+  const [categoryType, setCategoryType] = useState('women')
+  const {token} = useContext(usercontext) 
 
-  useEffect(() => {
-    // Fetch categories from API (mock data for now)
-    const fetchCategories = async () => {
-      try {
-        // Simulate API call with timeout
-        setTimeout(() => {
-          const mockCategories = [
-            {
-              id: 1,
-              name: "Men's Fashion",
-              image: "https://images.unsplash.com/photo-1617137968427-85924c800a22?ixlib=rb-4.0.3",
-              itemCount: 1245,
-              subcategories: [
-                {
-                  id: 101,
-                  name: "Formal Wear",
-                  image: "https://images.unsplash.com/photo-1593032465175-481ac7f401f0?ixlib=rb-4.0.3",
-                  itemCount: 328,
-                  description: "Professional attire for the modern gentleman"
-                },
-                {
-                  id: 102,
-                  name: "Casual Wear",
-                  image: "https://images.unsplash.com/photo-1552831388-6a0b3575b32a?ixlib=rb-4.0.3",
-                  itemCount: 452,
-                  description: "Relaxed styles for everyday comfort"
-                },
-                {
-                  id: 103,
-                  name: "Activewear",
-                  image: "https://images.unsplash.com/photo-1616690010099-acd383093752?ixlib=rb-4.0.3",
-                  itemCount: 215,
-                  description: "Performance clothing for sports and fitness"
-                },
-                {
-                  id: 104,
-                  name: "Accessories",
-                  image: "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?ixlib=rb-4.0.3",
-                  itemCount: 250,
-                  description: "Watches, belts, ties and more to complete your look"
-                }
-              ],
-              description: "Explore the latest trends in men's clothing, shoes, and accessories."
-            },
-            {
-              id: 2,
-              name: "Women's Fashion",
-              image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
-              itemCount: 2367,
-              subcategories: [
-                {
-                  id: 201,
-                  name: "Dresses",
-                  image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3",
-                  itemCount: 583,
-                  description: "From casual to formal, find the perfect dress"
-                },
-                {
-                  id: 202,
-                  name: "Tops & Blouses",
-                  image: "https://images.unsplash.com/photo-1551163943-3f7fb896e0db?ixlib=rb-4.0.3",
-                  itemCount: 674,
-                  description: "Stylish tops for every occasion"
-                },
-                {
-                  id: 203,
-                  name: "Footwear",
-                  image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3",
-                  itemCount: 428,
-                  description: "Heels, flats, boots and more"
-                },
-                {
-                  id: 204,
-                  name: "Jewelry",
-                  image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?ixlib=rb-4.0.3",
-                  itemCount: 682,
-                  description: "Elegant pieces to enhance your style"
-                }
-              ],
-              description: "Discover stylish dresses, tops, shoes, and accessories for women."
-            }
-          ]
-          
-          setCategories(mockCategories)
-          setLoading(false)
-        }, 1000)
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-        toast.error('Failed to load categories')
-        setLoading(false)
+
+  async function fetchCategories(type) {
+    try {
+      const options = {
+        url: `http://localhost/eMall/categories/getNumberOfCategories.php`,
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        params: {
+          'type': type
+        }
       }
+      
+      setLoading(true);
+      const response = await axios(options);
+      
+      if (response.data.message === "success") {
+        console.log(response.data);
+        
+        // Create a category based on the response data
+        const categoryData = [
+          {
+            id: 1,
+            name: `${type.charAt(0).toUpperCase() + type.slice(1)}'s Fashion`,
+            description: `Explore our ${type}'s collection with the latest trends`,
+            image: type === 'women' 
+              ? 'https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
+              : 'https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80',
+            total: response.data.total || 0
+          }
+        ];
+        
+        setCategories(categoryData);
+        
+        // Fetch subcategories after main categories are loaded
+        if (categoryData.length > 0) {
+          fetchSubCategories(type);
+        }
+      } else {
+        toast.error(response.data.message || "Failed to load categories");
+        setCategories([]);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to load categories. Please try again later.');
+      setCategories([]);
+      setLoading(false);
     }
+  }
+  
+  useEffect(() => {
+    fetchCategories(categoryType);
+  }, [token, categoryType]);
 
-    fetchCategories()
-  }, [])
+  async function fetchSubCategories(type) {
+    try {
+      setSubCatLoading(true);
+      const options = {
+        url: `http://localhost/eMall/categories/getSubCategories.php`,
+        method: "GET",
+        params: {
+          'sub': type
+        }
+      };
+      
+      const response = await axios(options);
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Enhance the subcategories with images and item counts
+        const enhancedSubCategories = response.data.map(subCat => ({
+          ...subCat,
+          image: getSubCategoryImage(subCat.title, type),
+          itemCount: Math.floor(Math.random() * 100) + 20 // Placeholder for item count
+        }));
+        
+        setSubCategories(enhancedSubCategories);
+      } else {
+        console.error('Invalid subcategories response:', response.data);
+        setSubCategories([]);
+      }
+      setSubCatLoading(false);
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+      toast.error('Failed to load subcategories. Please try again later.');
+      setSubCategories([]);
+      setSubCatLoading(false);
+    }
+  }
+  
+  // Helper function to get images for subcategories
+  function getSubCategoryImage(title, type) {
+    const images = {
+      'Formal Wear': type === 'women' 
+        ? 'https://images.unsplash.com/photo-1548609036-7d31e7f38c0a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80'
+        : 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80',
+      'Casual Wear': type === 'women'
+        ? 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=720&q=80'
+        : 'https://images.unsplash.com/photo-1552831388-6a0b3575b32a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80',
+      'Active Wear': type === 'women'
+        ? 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
+        : 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
+      'Accessories': type === 'women'
+        ? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80'
+        : 'https://images.unsplash.com/photo-1624526267942-ab0c0e53d0e3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
+    };
+    
+    return images[title] || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80';
+  }
 
   // Animation variants
   const containerVariants = {
@@ -146,6 +168,41 @@ export default function Categories() {
           </p>
         </motion.div>
 
+        {/* Category Type Selector */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex justify-center mb-12"
+        >
+          <div className="bg-white rounded-full shadow-md p-1 inline-flex">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCategoryType('women')}
+              className={`px-6 py-2 rounded-full font-medium transition-colors ${
+                categoryType === 'women' 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Women
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCategoryType('men')}
+              className={`px-6 py-2 rounded-full font-medium transition-colors ${
+                categoryType === 'men' 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Men
+            </motion.button>
+          </div>
+        </motion.div>
+
         {/* Main Categories */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -163,6 +220,7 @@ export default function Categories() {
             initial="hidden"
             animate="visible"
             className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20"
+            key={categoryType} // Re-render animation when category type changes
           >
             {categories.map(category => (
               <motion.div
@@ -190,7 +248,7 @@ export default function Categories() {
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 to-transparent z-[5]">
                   <h3 className="text-white text-2xl font-bold mb-1">{category.name}</h3>
-                  <p className="text-white/80">{category.itemCount.toLocaleString()} items</p>
+                  <p className="text-white/80">{category.total.toLocaleString()} items</p>
                 </div>
               </motion.div>
             ))}
@@ -198,7 +256,7 @@ export default function Categories() {
         )}
 
         {/* Subcategories */}
-        {!loading && (
+        {!loading && !subCatLoading && subCategories.length > 0 && (
           <div className="space-y-16">
             {categories.map(category => (
               <motion.div
@@ -226,13 +284,13 @@ export default function Categories() {
                   animate="visible"
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
                 >
-                  {category.subcategories.map(subcat => (
+                  {subCategories.map(subcat => (
                     <motion.div
                       key={subcat.id}
                       variants={itemVariants}
                       whileHover="hover"
                       className={`rounded-xl overflow-hidden shadow-sm ${
-                        category.id === 1 
+                        categoryType === 'women' 
                           ? "bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200" 
                           : "bg-gradient-to-br from-purple-50 to-pink-100 border border-purple-200"
                       }`}
@@ -240,27 +298,27 @@ export default function Categories() {
                       <Link to={`/categories/${category.id}/${subcat.id}`} className="block">
                         <div className="relative h-48 overflow-hidden">
                           <div className={`absolute inset-0 ${
-                            category.id === 1 
+                            categoryType === 'women' 
                               ? "bg-blue-600/10" 
                               : "bg-purple-600/10"
                           }`}></div>
                           <img 
                             src={subcat.image} 
-                            alt={subcat.name}
+                            alt={subcat.title}
                             className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                           />
                         </div>
                         <div className="p-5">
                           <h3 className={`font-medium text-lg mb-1 ${
-                            category.id === 1 ? "text-blue-800" : "text-purple-800"
+                            categoryType === 'women' ? "text-blue-800" : "text-purple-800"
                           }`}>
-                            {subcat.name}
+                            {subcat.title}
                           </h3>
                           <p className="text-sm text-gray-600 mb-3">{subcat.description}</p>
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-gray-500">{subcat.itemCount} items</span>
                             <span className={`text-sm font-medium ${
-                              category.id === 1 ? "text-blue-600" : "text-purple-600"
+                              categoryType === 'women' ? "text-blue-600" : "text-purple-600"
                             }`}>
                               Shop Now →
                             </span>
@@ -275,61 +333,9 @@ export default function Categories() {
           </div>
         )}
 
-        {/* Fashion Trends Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-16 text-center"
-        >
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
-            Latest Fashion Trends
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-6 shadow-sm">
-              <div className="h-12 w-12 bg-amber-500 rounded-full flex items-center justify-center text-white mx-auto mb-4">
-                <i className="fas fa-tshirt"></i>
-              </div>
-              <h3 className="text-lg font-medium text-amber-800 mb-2">Sustainable Fashion</h3>
-              <p className="text-amber-700/80 text-sm">Eco-friendly clothing options that don't compromise on style.</p>
-            </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-6 shadow-sm">
-              <div className="h-12 w-12 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto mb-4">
-                <i className="fas fa-palette"></i>
-              </div>
-              <h3 className="text-lg font-medium text-emerald-800 mb-2">Seasonal Colors</h3>
-              <p className="text-emerald-700/80 text-sm">Explore this season's trending colors and patterns.</p>
-            </div>
-            <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl p-6 shadow-sm">
-              <div className="h-12 w-12 bg-rose-500 rounded-full flex items-center justify-center text-white mx-auto mb-4">
-                <i className="fas fa-gem"></i>
-              </div>
-              <h3 className="text-lg font-medium text-rose-800 mb-2">Accessories Guide</h3>
-              <p className="text-rose-700/80 text-sm">Complete your outfit with the perfect accessories.</p>
-            </div>
-          </div>
-        </motion.div>
+     
 
-        {/* Newsletter Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 md:p-12 text-white text-center"
-        >
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Stay Updated with Fashion Trends</h2>
-          <p className="mb-6 max-w-2xl mx-auto">Subscribe to our newsletter to receive the latest updates on new arrivals, exclusive offers, and fashion tips.</p>
-          <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-3">
-            <input 
-              type="email" 
-              placeholder="Your email address" 
-              className="flex-grow px-4 py-3 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-            <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition-colors">
-              Subscribe
-            </button>
-          </div>
-        </motion.div>
+      
       </div>
     </div>
   )

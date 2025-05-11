@@ -36,6 +36,7 @@ export default function Stores() {
         description: store.description || "Store description not available",
         image: store.image || "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3",
         logo: store.store_logo || "https://via.placeholder.com/150",
+        quantity: store.stock_quantity || 0,
         path: `/stores/${store.store_id}`
       }));
       

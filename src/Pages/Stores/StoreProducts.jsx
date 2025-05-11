@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { usercontext } from "../Components/Context/UserContext/UserContext";
-import { useContext } from "react";
+import { WishlistContext } from "../Components/Context/WishlistContext/WishlistContext";
+import { cartcontext } from "../Components/Context/CartContext/CartContext"; // Added missing import
+import { toast } from "react-toastify";
 
 export default function StoreProducts() {
   // Get store ID from URL parameters
@@ -11,7 +13,8 @@ export default function StoreProducts() {
   const location = useLocation();
   const storeData = location.state?.storeData;
   const { token } = useContext(usercontext);
-  
+  const { wishlist, addToWishlist, removeFromWishlist } = useContext(WishlistContext);
+  const { addProductToCart } = useContext(cartcontext); // Using cartcontext
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,17 +28,65 @@ export default function StoreProducts() {
   const [isSimilarProductsLoading, setIsSimilarProductsLoading] = useState(false);
   const [error, setError] = useState(null);
   
+  // Function to check if a product is in wishlist
+  const isInWishlist = useCallback((productId) => {
+    return wishlist?.some(item => item.product_id === productId);
+  }, [wishlist]);
+
+  // Function to toggle wishlist status
+  const handleWishlistToggle = useCallback((productId, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (!token) {
+      toast.error("Please login to add items to wishlist");
+      return;
+    }
+    
+    if (isInWishlist(productId)) {
+      // If item is already in wishlist, show message or remove based on context
+      if (e && e.type === "click") {
+        // If this is a direct click (not a side effect), remove from wishlist
+        removeFromWishlist(productId);
+        toast.success("Item removed from wishlist");
+      } else {
+        // If trying to add an existing item
+        toast.info("Item already exists in wishlist");
+      }
+    } else {
+      // Add to wishlist if not already there
+      addToWishlist(productId);
+      toast.success("Item added to wishlist");
+    }
+  }, [token, isInWishlist, addToWishlist, removeFromWishlist]);
+  
+  // Function to handle adding a product to the cart
+  const handleAddToCart = async (productId, e) => {
+    if (e) {
+      e.preventDefault(); // Prevent navigation if the button is inside a Link
+      e.stopPropagation(); // Stop event bubbling
+    }
+    if (!token) {
+      toast.error("Please login to add items to cart");
+      return;
+    }
+    // Assuming product.id is the correct identifier for product_id
+    await addProductToCart({ product_id: productId });
+  };
+  
   const [storeInfo, setStoreInfo] = useState({
     id: store_id,
     name: "Store " + store_id,
     logo: "https://placehold.co/150x150?text=Store+" + store_id,
     image: "https://placehold.co/1200x600?text=Store+Banner",
-    description: "Welcome to our store!"
+    description: "Welcome to our store!",
+    quantity: 0
   });
 
   // Log for debugging
-  console.log("Store ID from URL:", store_id);
-  console.log("Store data from location state:", storeData);
+  
   
   // Update store info if data is available in location state
   useEffect(() => {
@@ -46,7 +97,8 @@ export default function StoreProducts() {
         name: storeData.name || `Store ${store_id}`,
         logo: storeData.logo || `https://placehold.co/150x150?text=Store+${store_id}`,
         image: storeData.image || "https://placehold.co/1200x600?text=Store+Banner",
-        description: storeData.description || "Welcome to our store!"
+        description: storeData.description || "Welcome to our store!",
+        quantity: storeData.quantity || 0
       });
     }
   }, [storeData, store_id]);
@@ -58,7 +110,6 @@ export default function StoreProducts() {
       setError(null);
       
       try {
-        console.log("Fetching products for store ID:", store_id);
         
         const options = {
           url: "http://localhost/eMall/products/getProductsByStore.php",
@@ -67,7 +118,6 @@ export default function StoreProducts() {
         };
         
         const response = await axios.request(options);
-        console.log("Products API Response:", response.data);
         
         // Check the exact structure of your API response
         const fetchedProducts = response?.data?.products || [];
@@ -79,7 +129,6 @@ export default function StoreProducts() {
         } else {
           setProducts(fetchedProducts);
           setFilteredProducts(fetchedProducts);
-          console.log("Products loaded:", fetchedProducts.length);
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -251,7 +300,6 @@ export default function StoreProducts() {
   };
 
   // Debug info
-  console.log("Current storeInfo:", storeInfo);
 
   // Render loading state
   if (isLoading) {
@@ -322,33 +370,24 @@ export default function StoreProducts() {
   }
 
   return (
-    <div className="min-h-screen mt-28 bg-gray-50">
-      {/* Store Header Section */}
-     <div className="relative">
-        <div className="h-60 md:h-96 overflow-hidden bg-gray-300">
-          <motion.img
-            src={storeInfo.image}
-            alt={storeInfo.name}
-            className="w-full h-full object-cover"
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 1 }}
-            onError={(e) => {
-              console.error("Error loading image:", e);
-              e.target.src = "https://placehold.co/1200x600?text=Store+Banner";
-            }}
-          />
-          <motion.div 
-            className="absolute inset-0 bg-black bg-opacity-40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-          ></motion.div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Store Header Section - Redesigned with parallax effect */}
+      <div className="relative h-72 md:h-[450px] overflow-hidden mt-14">
+        <motion.div
+          className="absolute inset-0"
+          style={{ 
+            backgroundImage: `url(${storeInfo.image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+          initial={{ scale: 1.1 }}
+          animate={{ y: 0, scale: 1 }}
+          transition={{ duration: 1.2 }}
+        />
         
-        <div className="absolute   inset-0 flex flex-col items-center justify-center text-white">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
           <motion.div 
-            className="bg-white rounded-full p-3 shadow-lg mb-4"
+            className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-2xl mb-4 border border-white/30"
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", duration: 0.8 }}
@@ -356,7 +395,7 @@ export default function StoreProducts() {
             <img 
               src={storeInfo.logo}
               alt={storeInfo.name}
-              className="h-24 w-24  rounded-full object-contain"
+              className="h-28 w-28 rounded-xl object-contain"
               onError={(e) => {
                 console.error("Error loading logo:", e);
                 e.target.src = `https://placehold.co/150x150?text=Store+${store_id}`;
@@ -364,7 +403,7 @@ export default function StoreProducts() {
             />
           </motion.div>
           <motion.h1 
-            className="text-3xl md:text-4xl font-bold mb-2 text-center px-4"
+            className="text-3xl md:text-5xl font-bold mb-2 text-center px-4 text-shadow-lg"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -372,7 +411,7 @@ export default function StoreProducts() {
             {storeInfo.name}
           </motion.h1>
           <motion.p 
-            className="text-lg text-center max-w-2xl px-4"
+            className="text-lg md:text-xl text-center max-w-3xl px-6 text-white/90 font-light"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -381,69 +420,73 @@ export default function StoreProducts() {
           </motion.p>
         </div>
       </div> 
-
-      <div className="container mx-auto px-4 py-12 md:pb-20">
-        {/* Search Bar */}
+  
+      <div className="container mx-auto px-4 -mt-6 relative z-10">
+        {/* Search Bar - Redesigned with glass effect */}
         <motion.div 
-          className="w-full mb-8 md:mb-12"
+          className="w-full mb-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <div className="relative max-w-2xl mx-auto">
+          <div className="relative max-w-3xl mx-auto">
             <input
               type="text"
               placeholder="Search products..."
-              className="w-full p-3 md:p-4 pl-10 md:pl-12 border-none rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-md bg-white"
+              className="w-full p-4 pl-14 border-none rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg bg-white/90 backdrop-blur-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <div className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-              <i className="fas fa-search"></i>
+            <div className="absolute left-5 top-1/2 transform -translate-y-1/2 text-blue-500">
+              <i className="fas fa-search text-lg"></i>
             </div>
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <i className="fas fa-times"></i>
               </button>
             )}
           </div>
         </motion.div>
-
-        {/* Visual Search Section */}
+  
+        {/* Visual Search Section - Modernized with rounded corners and animations */}
         <motion.div 
-          className="w-full mb-8 md:mb-12 bg-white rounded-xl shadow-sm overflow-hidden"
+          className="w-full mb-12 bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <div className="p-4 border-b flex justify-between items-center">
-            <h3 className="text-lg font-medium">Visual Search</h3>
+          <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+              <i className="fas fa-camera-retro text-blue-500 mr-3"></i>
+              Visual Search
+            </h3>
             <p className="text-sm text-gray-500">
               Find products by taking a photo
             </p>
           </div>
-
+  
           {!isCameraActive && !capturedImage ? (
-            <div className="p-6 flex flex-col items-center">
+            <div className="p-8 flex flex-col items-center">
               <motion.div 
-                className="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center mb-4"
-                whileHover={{ scale: 1.1, rotate: 15 }}
+                className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-6 shadow-lg"
+                whileHover={{ scale: 1.1, rotate: 15, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.5)" }}
               >
-                <i className="fas fa-camera text-blue-500 text-3xl"></i>
+                <i className="fas fa-camera text-white text-4xl"></i>
               </motion.div>
-              <p className="text-gray-600 mb-6 text-center max-w-md">
+              <p className="text-gray-600 mb-8 text-center max-w-md leading-relaxed">
                 Take a photo of an item you like and we'll help you find similar
                 products in our store.
               </p>
               <motion.button
                 onClick={startCamera}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
-                whileHover={{ scale: 1.05 }}
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl font-semibold flex items-center space-x-2"
+                whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(59, 130, 246, 0.4)" }}
                 whileTap={{ scale: 0.95 }}
               >
+                <i className="fas fa-camera-retro mr-2"></i>
                 Start Camera
               </motion.button>
             </div>
@@ -451,7 +494,7 @@ export default function StoreProducts() {
             <div className="relative">
               {isCameraActive && !capturedImage ? (
                 <>
-                  <div className="w-full h-80 bg-black">
+                  <div className="w-full h-96 bg-black">
                     <video
                       ref={videoRef}
                       autoPlay
@@ -459,10 +502,10 @@ export default function StoreProducts() {
                       className="w-full h-full object-cover"
                     ></video>
                   </div>
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-4">
+                  <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-6">
                     <motion.button
                       onClick={stopCamera}
-                      className="bg-white rounded-full p-3 shadow-lg hover:bg-gray-100"
+                      className="bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-xl hover:bg-gray-100"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                     >
@@ -470,41 +513,49 @@ export default function StoreProducts() {
                     </motion.button>
                     <motion.button
                       onClick={captureImage}
-                      className="bg-white rounded-full p-3 shadow-lg hover:bg-gray-100"
+                      className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-xl hover:bg-gray-100"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                     >
-                      <div className="w-12 h-12 rounded-full border-4 border-blue-600"></div>
+                      <div className="w-14 h-14 rounded-full border-4 border-blue-600"></div>
                     </motion.button>
                   </div>
                 </>
               ) : capturedImage ? (
                 <div>
-                  <div className="relative w-full h-80 bg-black">
+                  <div className="relative w-full h-96 bg-black">
                     <img
                       src={capturedImage}
                       alt="Captured"
                       className="w-full h-full object-contain"
                     />
                     {isSimilarProductsLoading ? (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
                         <motion.div 
-                          className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                        ></motion.div>
+                          className="flex flex-col items-center"
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <motion.div 
+                            className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                          ></motion.div>
+                          <p className="text-white mt-4 font-medium">Finding similar products...</p>
+                        </motion.div>
                       </div>
                     ) : null}
                   </div>
-
+  
                   {!isSimilarProductsLoading && (
-                    <div className="p-4">
-                      <h4 className="text-lg font-medium mb-3">
+                    <div className="p-6">
+                      <h4 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                        <i className="fas fa-tag text-blue-500 mr-2"></i>
                         Similar Products
                       </h4>
                       {similarProducts.length > 0 ? (
                         <motion.div 
-                          className="grid grid-cols-2 md:grid-cols-3 gap-4"
+                          className="grid grid-cols-2 md:grid-cols-4 gap-4"
                           variants={containerVariants}
                           initial="hidden"
                           animate="visible"
@@ -512,51 +563,86 @@ export default function StoreProducts() {
                           {similarProducts.map((product) => (
                             <motion.div
                               key={product.id}
-                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 group flex flex-col"
                               variants={itemVariants}
+                              whileHover={{ y: -5, boxShadow: "0 10px 20px rgba(0,0,0,0.08)" }}
                             >
-                              <Link to={`/productdetails/${product.id}`}>
-                                <img
-                                  src={product.images && product.images.length > 0
-                                    ? product.images[0]
-                                    : "https://placehold.co/400x320?text=Similar+Product"}
-                                  alt={product.name}
-                                  className="w-full h-32 object-cover rounded-lg shadow-sm"
-                                  onError={(e) => {
-                                    e.target.src = "https://placehold.co/400x320?text=Similar+Product";
-                                  }}
-                                />
-                                <p className="text-sm mt-2 font-medium line-clamp-1">
-                                  {product.name}
-                                </p>
-                                <p className="text-blue-600 font-bold">
-                                  {parseFloat(product.price).toFixed(2)} EGP
-                                </p>
+                              <Link to={`/productdetails/${product.id}`} className="block">
+                                <div className="relative overflow-hidden aspect-square">
+                                  <img
+                                    src={product.images && product.images.length > 0
+                                      ? product.images[0]
+                                      : "https://placehold.co/300x300?text=No+Image"}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                    onError={(e) => { e.target.src = "https://placehold.co/300x300?text=Error"; }}
+                                  />
+                                  <div className="absolute top-2 right-2">
+                                    <motion.button
+                                      onClick={(e) => handleWishlistToggle(product.id, e)}
+                                      className={`p-2 rounded-full transition-colors duration-300 ${
+                                        isInWishlist(product.id) ? 'bg-pink-500 text-white' : 'bg-white/80 text-gray-700 hover:bg-pink-100'
+                                      }`}
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      aria-label="Toggle Wishlist"
+                                    >
+                                      <i className={`fas fa-heart ${isInWishlist(product.id) ? '' : 'far'}`}></i>
+                                    </motion.button>
+                                  </div>
+                                </div>
+                                <div className="p-4 flex-grow">
+                                  <h3 className="text-sm font-semibold text-gray-800 mb-1 truncate group-hover:text-blue-600">
+                                    {product.name}
+                                  </h3>
+                                  <p className="text-xs text-gray-500 mb-2 truncate">{product.category}</p>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-base font-bold text-blue-600">
+                                      ${parseFloat(product.price).toFixed(2)}
+                                    </span>
+                                    {/* Rating can be added here if available */}
+                                  </div>
+                                </div>
                               </Link>
+                              <div className="p-3 border-t border-gray-100">
+                                <motion.button
+                                  onClick={(e) => handleAddToCart(product.id, e)}
+                                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-medium py-2 px-3 rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center"
+                                  whileHover={{ scale: 1.03 }}
+                                  whileTap={{ scale: 0.97 }}
+                                >
+                                  <i className="fas fa-cart-plus mr-2"></i>
+                                  Add to Cart
+                                </motion.button>
+                              </div>
                             </motion.div>
                           ))}
                         </motion.div>
                       ) : (
-                        <p className="text-center text-gray-500 py-4">
-                          No similar products found
-                        </p>
+                        <div className="text-center py-8 bg-blue-50 rounded-xl">
+                          <i className="fas fa-search text-blue-300 text-4xl mb-4"></i>
+                          <p className="text-gray-600">
+                            No similar products found
+                          </p>
+                        </div>
                       )}
-
-                      <div className="mt-6 flex justify-between">
+  
+                      <div className="mt-8 flex justify-between">
                         <motion.button
                           onClick={() => {
                             resetCamera();
                             startCamera();
                           }}
-                          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                          className="px-6 py-3 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 shadow-sm font-medium"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
+                          <i className="fas fa-camera-retro mr-2"></i>
                           Take Another Photo
                         </motion.button>
                         <motion.button
                           onClick={resetCamera}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-md hover:shadow-lg font-medium"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
@@ -570,45 +656,46 @@ export default function StoreProducts() {
             </div>
           )}
         </motion.div>
-
-        {/* Mobile Filter Toggle Button */}
+  
+        {/* Mobile Filter Toggle Button - More appealing design */}
         <motion.div 
-          className="md:hidden mb-6"
+          className="md:hidden mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
           <motion.button
             onClick={toggleMobileFilter}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg shadow-sm"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-xl shadow-md font-medium"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <i className={`fas ${isMobileFilterOpen ? "fa-times" : "fa-filter"}`}></i>
-            {isMobileFilterOpen ? "Close Filters" : "Show Filters"}
+            <i className={`fas ${isMobileFilterOpen ? "fa-times" : "fa-filter"} text-lg`}></i>
+            {isMobileFilterOpen ? "Close Filters" : "Filter & Sort Products"}
           </motion.button>
         </motion.div>
-
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-          {/* Sidebar - Desktop */}
+  
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sidebar - Desktop - Improved design */}
           <motion.div 
-            className="hidden md:block w-full md:w-1/4 lg:w-1/5 bg-white p-5 md:p-6 rounded-xl shadow-sm h-fit sticky top-4"
+            className="hidden md:block w-full md:w-1/4 lg:w-1/5 bg-white p-6 rounded-2xl shadow-md h-fit sticky top-6 border border-gray-100"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <div className="mb-6 md:mb-8">
-              <h3 className="text-lg font-semibold mb-3 md:mb-4 text-gray-800 border-b pb-2">
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-100 pb-3 flex items-center">
+                <i className="fas fa-tags text-blue-500 mr-2"></i>
                 Categories
               </h3>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {categories.map((category) => (
                   <div key={category} className="flex items-center">
                     <motion.button
-                      className={`w-full text-left py-2 md:py-2.5 px-3 rounded-md transition-colors ${
+                      className={`w-full text-left py-3 px-4 rounded-lg transition-all ${
                         selectedCategory === category
-                          ? "bg-blue-600 text-white font-medium"
-                          : "hover:bg-blue-50 text-gray-700"
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium shadow-md"
+                          : "hover:bg-blue-50 text-gray-700 border border-gray-100"
                       }`}
                       onClick={() => setSelectedCategory(category)}
                       whileHover={{ scale: 1.02 }}
@@ -620,13 +707,20 @@ export default function StoreProducts() {
                 ))}
               </div>
             </div>
+  
 
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 md:mb-4 text-gray-800 border-b pb-2">
+
+
+
+
+
+         <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-100 pb-3 flex items-center">
+                <i className="fas fa-sort-amount-down text-blue-500 mr-2"></i>
                 Sort By
               </h3>
               <select
-                className="w-full p-2.5 md:p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -638,41 +732,47 @@ export default function StoreProducts() {
                 <option value="rating">Top Rated</option>
               </select>
             </div>
-
-            <div className="mt-6 md:mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <h4 className="font-medium text-gray-800 mb-2">Need Help?</h4>
-              <p className="text-sm text-gray-600 mb-3">
-                Our customer service is available 24/7
+  
+            <div className="mt-8 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+              <div className="flex items-center mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                  <i className="fas fa-headset text-blue-600"></i>
+                </div>
+                <h4 className="font-semibold text-gray-800">Need Help?</h4>
+              </div>
+              <p className="text-gray-600 mb-4 text-sm">
+                Our customer service team is available 24/7 to assist you
               </p>
               <a
                 href="#"
-                className="text-sm font-medium text-blue-600 hover:underline flex items-center"
+                className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg py-2 px-4 inline-block w-full text-center transition-colors shadow-sm"
               >
                 <i className="fas fa-headset mr-2"></i> Contact Support
               </a>
             </div>
           </motion.div>
-
-          {/* Sidebar - Mobile */}
+  
+          {/* Sidebar - Mobile - Updated design */}
           {isMobileFilterOpen && (
             <motion.div 
-              className="md:hidden w-full bg-white p-5 rounded-xl shadow-sm mb-6"
+              className="md:hidden w-full bg-white p-6 rounded-xl shadow-lg mb-8 border border-gray-100"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               transition={{ duration: 0.3 }}
             >
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-100 pb-2 flex items-center">
+                  <i className="fas fa-tags text-blue-500 mr-2"></i>
                   Categories
                 </h3>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {categories.map((category) => (
                     <motion.button
                       key={category}
-                      className={`py-2 px-3 rounded-md transition-colors text-center ${
+                      className={`py-3 px-4 rounded-lg transition-all text-center ${
                         selectedCategory === category
-                          ? "bg-blue-600 text-white font-medium"
-                          : "bg-gray-100 hover:bg-blue-50 text-gray-700"
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium shadow-md"
+                          : "bg-gray-50 hover:bg-blue-50 text-gray-700 border border-gray-100"
                       }`}
                       onClick={() => {
                         setSelectedCategory(category);
@@ -687,13 +787,14 @@ export default function StoreProducts() {
                   ))}
                 </div>
               </div>
-
+  
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-100 pb-2 flex items-center">
+                  <i className="fas fa-sort-amount-down text-blue-500 mr-2"></i>
                   Sort By
                 </h3>
                 <select
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
                   value={sortBy}
                   onChange={(e) => {
                     setSortBy(e.target.value);
@@ -708,10 +809,10 @@ export default function StoreProducts() {
                   <option value="rating">Top Rated</option>
                 </select>
               </div>
-
+  
               <motion.button
                 onClick={toggleMobileFilter}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg mt-2"
+                className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-md mt-3 font-medium"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -719,222 +820,303 @@ export default function StoreProducts() {
               </motion.button>
             </motion.div>
           )}
-
-          {/* Product Grid */}
+  
+          {/* Product Grid - Redesigned with better cards */}
           <motion.div 
-            className="w-full md:w-3/4 lg:w-4/5"
+  className="w-full md:w-3/4 lg:w-4/5"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ delay: 0.8 }}
+>
+  {filteredProducts.length === 0 ? (
+    <motion.div 
+      className="text-center py-20 bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-md border border-blue-100 overflow-hidden relative"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.9 }}
+    >
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute -top-20 -left-20 w-64 h-64 bg-blue-300 rounded-full"></div>
+        <div className="absolute top-40 -right-20 w-80 h-80 bg-indigo-300 rounded-full"></div>
+        <div className="absolute -bottom-20 left-1/3 w-72 h-72 bg-purple-300 rounded-full"></div>
+      </div>
+
+      <div className="relative z-10">
+        <motion.div 
+          className="w-28 h-28 mx-auto bg-white rounded-full flex items-center justify-center mb-8 shadow-xl border border-blue-100"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20, delay: 1 }}
+        >
+          <i className="fas fa-search text-5xl bg-gradient-to-br from-blue-400 to-indigo-600 bg-clip-text text-transparent"></i>
+        </motion.div>
+        <motion.h3 
+          className="text-2xl text-gray-800 mb-4 font-bold tracking-tight"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1 }}
+        >
+          {products.length === 0 ? 
+            "No products available for this store yet" : 
+            "No products found matching your criteria"}
+        </motion.h3>
+        <motion.p 
+          className="text-gray-600 mb-10 px-4 max-w-lg mx-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+        >
+          {products.length === 0 ? 
+            "Check back later for new products from this store" : 
+            "Try adjusting your search or filter to find what you're looking for"}
+        </motion.p>
+        {products.length > 0 && (
+          <motion.button
+            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl font-medium transition-all"
+            onClick={() => {
+              setSearchTerm("");
+              setSelectedCategory("All");
+              setSortBy("featured");
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 1.3 }}
           >
-            {filteredProducts.length === 0 ? (
-              <motion.div 
-                className="text-center py-12 md:py-16 bg-white rounded-xl shadow-sm"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 }}
-              >
-                <motion.i 
-                  className="fas fa-search text-4xl md:text-5xl text-gray-300 mb-4"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20, delay: 1 }}
-                ></motion.i>
-                <motion.h3 
-                  className="text-lg md:text-xl text-gray-600 mb-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.1 }}
-                >
-                  {products.length === 0 ? 
-                    "No products available for this store yet" : 
-                    "No products found matching your criteria"}
-                </motion.h3>
-                <motion.p 
-                  className="text-gray-500 mb-6 px-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.2 }}
-                >
-                  {products.length === 0 ? 
-                    "Check back later for new products from this store" : 
-                    "Try adjusting your search or filter to find what you're looking for"}
-                </motion.p>
-                {products.length > 0 && (
-                  <motion.button
-                    className="px-5 py-2.5 md:px-6 md:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setSelectedCategory("All");
-                      setSortBy("featured");
-                    }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.3 }}
-                  >
-                    Reset Filters
-                  </motion.button>
-                )}
-              </motion.div>
-            ) : (
-              <>
-                <motion.div 
-                  className="flex justify-between items-center mb-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                >
-                  <h2 className="text-lg md:text-xl font-medium text-gray-800">
-                    {selectedCategory === "All"
-                      ? "All Products"
-                      : selectedCategory}
-                    <span className="text-gray-500 ml-2 text-sm">
-                      ({filteredProducts.length} items)
-                    </span>
-                  </h2>
-                  <div className="hidden md:block">
-                    <select
-                      className="p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                    >
-                      <option value="featured">Featured</option>
-                      <option value="priceAsc">Price: Low to High</option>
-                      <option value="priceDesc">Price: High to Low</option>
-                      <option value="nameAsc">Name: A to Z</option>
-                      <option value="nameDesc">Name: Z to A</option>
-                      <option value="rating">Top Rated</option>
-                    </select>
-                  </div>
-                </motion.div>
-
-                <motion.div 
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {filteredProducts.map((product) => (
-                    <motion.div
-                      key={product.id}
-                      className="bg-white rounded-xl shadow-sm overflow-hidden group hover:shadow-md transition-shadow duration-300"
-                      variants={itemVariants}
-                    >
-                      <div className="relative overflow-hidden">
-                        <img
-                          src={product.images && product.images[0] 
-                            ? product.images[0] 
-                            : "https://placehold.co/400x320?text=Product+Image"}
-                          alt={product.name}
-                          className="w-full h-48 sm:h-56 md:h-64 object-cover transition-transform duration-500 group-hover:scale-110"
-                          loading="lazy"
-                          onError={(e) => {
-                            console.error("Error loading product image:", e);
-                            e.target.src = "https://placehold.co/400x320?text=Product+Image";
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-blue-600 bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="absolute top-0 right-0 p-2 md:p-3 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-x-full group-hover:translate-x-0">
-                          <button
-                            className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                            aria-label="Add to wishlist"
-                          >
-                            <i className="far fa-heart text-gray-600 hover:text-red-500 transition-colors"></i>
-                          </button>
-                          <button
-                            className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                            aria-label="Add to cart"
-                          >
-                            <i className="fas fa-shopping-cart text-gray-600 hover:text-green-500 transition-colors"></i>
-                          </button>
-                          <button
-                            className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                            aria-label="Compare"
-                          >
-                            <i className="fas fa-code-compare text-gray-600 hover:text-blue-500 transition-colors"></i>
-                          </button>
-                          
-                          <Link 
-                            to={`/productdetails/${product.id}`}
-                            className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors block text-center"
-                            aria-label="View details"
-                          >
-                            <i className="fas fa-eye text-gray-600 hover:text-purple-500 transition-colors"></i>
-                          </Link>
-                        </div>
-                        {product.stock_quantity <= 0 && (
-                          <div className="absolute top-2 md:top-3 left-2 md:left-3 bg-red-500 text-white px-2 md:px-3 py-1 rounded-full text-xs font-medium">
-                            Out of Stock
-                          </div>
-                        )}
-                        {product.isNew && (
-                          <div className="absolute top-2 md:top-3 left-2 md:left-3 bg-green-500 text-white px-2 md:px-3 py-1 rounded-full text-xs font-medium">
-                            New Arrival
-                          </div>
-                        )}
-                        {product.discount && (
-                          <div className="absolute top-2 md:top-3 left-2 md:left-3 bg-yellow-500 text-white px-2 md:px-3 py-1 rounded-full text-xs font-medium">
-                            {product.discount}% Off
-                          </div>
-                        )}
-                        {product.category && (
-                          <div className="absolute bottom-2 md:bottom-3 left-2 md:left-3 bg-blue-600 bg-opacity-80 text-white px-2 md:px-3 py-1 rounded-full text-xs font-medium">
-                            {product.category}
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-4 md:p-5">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-base md:text-lg font-medium text-gray-800 line-clamp-1 hover:text-blue-600 transition-colors">
-                            <Link to={`/productdetails/${product.id}`} className="hover:underline">
-                              {product.name}
-                            </Link>
-                          </h3>
-                          <div className="flex items-center bg-blue-50 px-2 py-1 rounded">
-                            <i className="fas fa-star text-yellow-400 mr-1 text-xs"></i>
-                            <span className="text-gray-600 text-sm">
-                              {product.rating || "4.5"}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 text-xs md:text-sm mb-3 md:mb-4 line-clamp-2">
-                          {product.description}
-                        </p>
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <span className="text-lg md:text-m font-bold text-gray-800">
-                              {parseFloat(product.price).toFixed(2)} EGP
-                            </span>
-                            {product.oldPrice && (
-                              <span className="text-sm text-gray-500 line-through ml-2">
-                                {parseFloat(product.oldPrice).toFixed(2)} EGP
-                              </span>
-                            )}
-                          </div>
-                          <motion.button
-                            className={`p-1 rounded-lg text-sm ${
-                              product.stock_quantity > 0
-                                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                : "bg-gray-200 cursor-not-allowed text-gray-500"
-                            } transition-colors`}
-                            disabled={product.stock_quantity <= 0}
-                            whileHover={product.stock_quantity > 0 ? { scale: 1.05 } : {}}
-                            whileTap={product.stock_quantity > 0 ? { scale: 0.95 } : {}}
-                          >
-                            {product.stock_quantity > 0 ? "Add to Cart" : "Sold Out"}
-                          </motion.button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-          </motion.div>
-        </div>
+            <i className="fas fa-sync-alt mr-2"></i>
+            Reset Filters
+          </motion.button>
+        )}
       </div>
+    </motion.div>
+  ) : (
+    <>
+      <motion.div 
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+      >
+        <div className="flex flex-col">
+          <div className="flex items-center mb-1">
+            <span className="w-1.5 h-6 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full mr-3 hidden md:block"></span>
+            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-700 bg-clip-text text-transparent">
+              {selectedCategory === "All" ? "All Products" : selectedCategory}
+            </h2>
+          </div>
+          <div className="flex items-center text-gray-500 ml-0 md:ml-4 text-sm">
+            <span className="font-medium text-blue-600">{filteredProducts.length}</span>
+            <span className="ml-1">products found</span>
+            {searchTerm && (
+              <div className="flex items-center ml-3 bg-blue-50 px-2 py-1 rounded-full">
+                <span className="mr-1">"{searchTerm}"</span>
+                <button 
+                  onClick={() => setSearchTerm("")} 
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <i className="fas fa-times-circle"></i>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center w-full sm:w-auto">
+          <div className="relative flex-grow sm:flex-grow-0">
+            <select
+              className="appearance-none w-full sm:w-auto pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="featured">Featured</option>
+              <option value="priceAsc">Price: Low to High</option>
+              <option value="priceDesc">Price: High to Low</option>
+              <option value="nameAsc">Name: A to Z</option>
+              <option value="nameDesc">Name: Z to A</option>
+              <option value="rating">Top Rated</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
+              <i className="fas fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div 
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {filteredProducts.map((product) => (
+          <motion.div
+            key={product.id}
+            className="group relative cursor-pointer"
+            variants={itemVariants}
+          >
+            {/* Card container with enhanced 3D effect on hover */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden group-hover:shadow-xl transition-all duration-300 border border-gray-100 h-full transform group-hover:-translate-y-1">
+              {/* Image section */}
+
+              <div className="relative overflow-hidden aspect-square"         
+                  onClick={() => window.location.href = `/productdetails/${product.id}`}
+              >
+                
+                <img
+                  src={product.images && product.images[0] 
+                    ? product.images[0] 
+                    : "https://placehold.co/400x400?text=Product+Image"}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  loading="lazy"
+                  onError={(e) => {
+                    console.error("Error loading product image:", e);
+                    e.target.src = "https://placehold.co/400x400?text=Product+Image";
+                  }}
+                  
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {/* Wishlist button - absolute positioned at top right */}
+                <button 
+                  className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 hover:bg-red-50"
+                  aria-label="Add to wishlist"
+                  onClick={(e) => handleWishlistToggle(product.id, e)}
+                >
+                  <i className={`${isInWishlist(product.id) ? 'fas text-red-500' : 'far text-gray-600'} fa-heart group-hover:text-red-500 transition-colors`}></i>
+                </button>
+                
+                {/* Product badges */}
+                <div className="absolute top-3 left-3 flex flex-col gap-2">
+                  {product.stock_quantity <= 0 && (
+                    <div className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs font-medium shadow-md">
+                      Out of Stock
+                    </div>
+                  )}
+                  {product.isNew && (
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-lg text-xs font-medium shadow-md">
+                      New
+                    </div>
+                  )}
+                  {product.discount && (
+                    <div className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-3 py-1 rounded-lg text-xs font-medium shadow-md">
+                      {product.discount}% Off
+                    </div>
+                  )}
+                </div>
+                
+                {/* Category tag */}
+                {product.category && (
+                  <div className="absolute bottom-3 left-3 bg-white/80 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-lg text-xs font-medium shadow-sm">
+                    {product.category}
+                  </div>
+                )}
+              </div>
+              
+              {/* Product details section */}
+              <div className="p-5 flex flex-col h-[calc(100%-100%)]">
+                {/* Rating and price row */}
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center bg-yellow-50 px-2 py-1 rounded-lg">
+                    <i className="fas fa-star text-yellow-500 mr-1 text-xs"></i>
+                    <span className="text-gray-700 text-sm font-medium">
+                      {product.rating || "4.5"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-lg font-bold text-gray-900">
+                      {parseFloat(product.price).toFixed(2)} <span className="text-xs">EGP</span>
+                    </span>
+                    {product.oldPrice && (
+                      <span className="text-xs text-gray-500 line-through">
+                        {parseFloat(product.oldPrice).toFixed(2)} EGP
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Product title */}
+                <h3 className="text-lg font-semibold text-gray-800 line-clamp-1 mb-2 hover:text-blue-600 transition-colors group-hover:text-blue-600">
+                  <Link to={`/productdetails/${product.id}`} className="hover:underline">
+                    {product.name}
+                  </Link>
+                </h3>
+                
+                {/* Product description */}
+                <p className="text-gray-500 text-sm mb-4 line-clamp-2 flex-grow">
+                  {product.description}
+                </p>
+                
+                {/* Add to cart button */}
+                <div className="pt-3 border-t border-gray-100 mt-auto">
+                  <motion.button
+                    onClick={() => {addProductToCart({product_id: product.id, quantity: 1})}}
+                    className={`w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 ${
+                      product.stock_quantity > 0
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                        : "bg-gray-200 cursor-not-allowed text-gray-500"
+                    } transition-all`}
+                    disabled={product.stock_quantity <= 0}
+                    whileHover={product.stock_quantity > 0 ? { scale: 1.02 } : {}}
+                    whileTap={product.stock_quantity > 0 ? { scale: 0.98 } : {}}
+                  >
+                    {product.stock_quantity > 0 ? (
+                      <>
+                        <i className="fas fa-cart-plus"></i>
+                        Add to Cart
+                      </>
+                    ) : "Sold Out"}
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick actions buttons - positioned at bottom right, just compare and add to cart */}
+            <div className="absolute right-3 bottom-3 flex gap-2 transition-all duration-300 z-10">
+              <motion.button
+                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-blue-50 border border-gray-100"
+                aria-label="Compare"
+                whileHover={{ scale: 1.1, backgroundColor: "#EFF6FF" }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <i className="fas fa-code-compare text-blue-500"></i>
+              </motion.button>
+              <motion.button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent navigation to product details
+                  addProductToCart({product_id: product.id, quantity: 1});
+                }}
+                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-green-50 border border-gray-100"
+                aria-label="Add to cart"
+                whileHover={{ scale: 1.1, backgroundColor: "#ECFDF5" }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <i className="fas fa-shopping-cart text-green-500"></i>
+              </motion.button>
+              <motion.button
+                onClick={() => window.location.href = `/productdetails/${product.id}`}
+                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-green-50 border border-gray-100"
+                aria-label="Add to cart"
+                whileHover={{ scale: 1.1, backgroundColor: "#ECFDF5" }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <i className="fas fa-eye text-indigo-700"></i>
+              </motion.button>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+      
+      {/* Removed pagination as requested */}
+    </>
+  )}
+</motion.div>
+</div>
+      </div>
+      
+    
     </div>
   );
 }
+ 

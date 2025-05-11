@@ -26,6 +26,9 @@ import ProductDetails from "./Pages/ProductDetails/ProductDetails";
 import AboutUs from "./Pages/AboutUs/AboutUs";
 import Checkout from "./Pages/Checkout/Checkout";
 import StoreProducts from "./Pages/Stores/StoreProducts";
+import Cartprovider from "./Pages/Components/Context/CartContext/CartContext";
+import { WishlistProvider } from "./Pages/Components/Context/WishlistContext/WishlistContext";
+
 function App() {
   const routes = createBrowserRouter([
     {
@@ -45,7 +48,7 @@ function App() {
         {path:"chatbot",element:<ChatBot/>},
         { path: "userprofile", element: <UserProfile /> },
         { path: "compare", element: <Compare /> },
-        { path: "cart", element: <Cart /> },
+        { path: "cart", element: <Cart/> },
         { path: "wishlist", element: <Wishlist /> },
         {path:"/stores/:store_id",element:<StoreProducts/>},
         {path:"orders",element:<Orders/>},
@@ -63,9 +66,6 @@ function App() {
         { path: "forgot-password", element: <ForgetPassword /> },
         { path: "verify-otp", element: <VerifyOtp /> },
         { path: "reset-password", element: <ResetPassword /> },
-               
-
-        
       ],
     },
   ]);
@@ -73,12 +73,14 @@ function App() {
   return (
     <>
     <Userprovider>
-      
-        <RouterProvider router={routes}></RouterProvider>
-        <Toaster />
-      
+      <Cartprovider>
+        <WishlistProvider>
+          <RouterProvider router={routes}></RouterProvider>
+          <Toaster />
+        </WishlistProvider>
+      </Cartprovider>
     </Userprovider>
-  </>
+    </>
   );
 }
 

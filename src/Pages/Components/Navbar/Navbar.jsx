@@ -1,20 +1,47 @@
-import {  useContext, useEffect, useState,  } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { usercontext } from "../Context/UserContext/UserContext";
 import logo from "../../../assets/images/logonew.png";
+import { cartcontext } from "../Context/CartContext/CartContext";
+import { WishlistContext } from "../Context/WishlistContext/WishlistContext";
+
 function Navbar() {
   
   const { token, settoken } = useContext(usercontext);
   const [validToken, setValidToken] = useState(localStorage.getItem("token") || "");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { getCartInfo, cartinfo } = useContext(cartcontext);
+  const { wishlistCount, getWishlist } = useContext(WishlistContext);
+  const wishlistItemCount = wishlistCount || 0;
+  const cartItemCount = cartinfo?.count || 0;
 
   useEffect(() => {
     if (token) {
       setValidToken(token);
+      localStorage.setItem("token", token); // Save token to localStorage
     }
   }, [token]);
+  
+  // Use useCallback to memoize the getWishlist function
+  const fetchWishlist = useCallback(() => {
+    if (validToken) {
+      getWishlist();
+    }
+  }, [validToken, getWishlist]);
+  
+  // Call fetchWishlist when component mounts or validToken changes
+  useEffect(() => {
+    fetchWishlist();
+  }, [fetchWishlist]);
+  
+  // Fetch cart info when component mounts or validToken changes
+  useEffect(() => {
+    if (validToken) {
+      getCartInfo();
+    }
+  }, [validToken, getCartInfo]);
  
-  const navigate=useNavigate();
+  const navigate = useNavigate();
   function LogOut() {
     settoken(null);
     localStorage.removeItem("token");
@@ -31,7 +58,6 @@ function Navbar() {
     before:duration-300 hover:font-bold before:bg-blue-400 before:absolute 
     before:left-0 before:-bottom-1 ${isActive ? "before:w-full font-bold" : "before:w-0"}
   `;
-
 
   return (
     <>
@@ -58,6 +84,8 @@ function Navbar() {
                         Home
                       </NavLink>
                     </li>
+
+                   
 
                     <li>
                       <NavLink
@@ -86,7 +114,6 @@ function Navbar() {
                       </NavLink>
                     </li>
 
-                    
                    
                     <li>
                       <NavLink
@@ -111,12 +138,15 @@ function Navbar() {
                     </Link>
                     <Link to="/wishlist" className="group relative p-2 hover:scale-110 transition-all duration-300" aria-label="Wishlist">
                       <i className="fa-solid fa-heart text-lg sm:text-xl text-gray-700 dark:text-gray-200 group-hover:text-pink-500 transition-colors duration-300"></i>
+                      <span className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-red-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-md">
+                        {wishlistItemCount}
+                      </span>
                       <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Wishlist</span>
                     </Link>
                     <Link to="/cart" className="group relative p-2 hover:scale-110 transition-all duration-300" aria-label="Shopping cart">
                       <i className="fa-solid fa-cart-shopping text-lg sm:text-xl text-gray-700 dark:text-gray-200 group-hover:text-blue-500 transition-colors duration-300"></i>
                       <span className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-md">
-                        0
+                        {cartItemCount}
                       </span>
                       <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Cart</span>
                     </Link>
@@ -139,9 +169,9 @@ function Navbar() {
                     <>
                      <li>
                       <NavLink
-                        className={({ isactive }) => {
+                        className={({ isActive }) => {
                           return `relative px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-medium hover:shadow-lg transition-all duration-300 text-sm sm:text-base
-                          ${isactive ? "shadow-md" : ""}`;
+                          ${isActive ? "shadow-md" : ""}`;
                         }}
                         to="/auth/login"
                       >
@@ -180,7 +210,7 @@ function Navbar() {
             </div>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation - Made consistent with desktop */}
           {isMenuOpen && validToken && (
             <div className="md:hidden bg-white dark:bg-gray-900 pb-4">
               <nav aria-label="Mobile Global">
@@ -212,6 +242,17 @@ function Navbar() {
                       className={({ isActive }) => 
                         `block py-2 ${isActive ? "text-blue-500 font-bold" : "text-gray-600"}`
                       }
+                      to="/categories"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Categories
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink
+                      className={({ isActive }) => 
+                        `block py-2 ${isActive ? "text-blue-500 font-bold" : "text-gray-600"}`
+                      }
                       to="/stores"
                       onClick={() => setIsMenuOpen(false)}
                     >
@@ -234,10 +275,10 @@ function Navbar() {
                       className={({ isActive }) => 
                         `block py-2 ${isActive ? "text-blue-500 font-bold" : "text-gray-600"}`
                       }
-                      to="/categories"
+                      to="/ar-showcase"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Categories
+                      AR Showcase
                     </NavLink>
                   </li>
                   <li>
@@ -245,10 +286,10 @@ function Navbar() {
                       className={({ isActive }) => 
                         `block py-2 ${isActive ? "text-blue-500 font-bold" : "text-gray-600"}`
                       }
-                      to="/ar-showcase"
+                      to="/chatbot"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      AR Showcase
+                      AI Assistant
                     </NavLink>
                   </li>
                 </ul>
