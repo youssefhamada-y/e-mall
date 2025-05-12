@@ -205,9 +205,9 @@ export default function Categories() {
 
         {/* Main Categories */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 ">
             {[...Array(2)].map((_, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
+              <div key={index} className="bg-white rounded-xl p-6 shadow-sm animate-pulse flex ">
                 <div className="h-64 bg-gray-200 rounded-lg mb-4"></div>
                 <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
                 <div className="h-4 bg-gray-200 rounded w-1/2"></div>
@@ -227,7 +227,7 @@ export default function Categories() {
                 key={category.id}
                 variants={itemVariants}
                 whileHover="hover"
-                className="relative overflow-hidden rounded-xl shadow-lg group"
+                className="relative overflow-hidden rounded-xl shadow-lg group "
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/80 to-purple-600/80 opacity-0 group-hover:opacity-90 transition-opacity duration-300 z-10 flex items-center justify-center">
                   <div className="text-center p-6">
@@ -316,7 +316,7 @@ export default function Categories() {
                           </h3>
                           <p className="text-sm text-gray-600 mb-3">{subcat.description}</p>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-500">{subcat.itemCount} items</span>
+                            <span className="text-sm text-gray-500">{subcat.product_count} items</span>
                             <span className={`text-sm font-medium ${
                               categoryType === 'women' ? "text-blue-600" : "text-purple-600"
                             }`}>

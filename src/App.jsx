@@ -28,6 +28,7 @@ import Checkout from "./Pages/Checkout/Checkout";
 import StoreProducts from "./Pages/Stores/StoreProducts";
 import Cartprovider from "./Pages/Components/Context/CartContext/CartContext";
 import { WishlistProvider } from "./Pages/Components/Context/WishlistContext/WishlistContext";
+import GetProducts from "./Pages/Categories/GetProducts";
 
 function App() {
   const routes = createBrowserRouter([
@@ -52,9 +53,9 @@ function App() {
         { path: "wishlist", element: <Wishlist /> },
         {path:"/stores/:store_id",element:<StoreProducts/>},
         {path:"orders",element:<Orders/>},
-        {path:"/productdetails/:productid",element:<ProductDetails/>},
-        {path:"aboutus",element:<AboutUs/>},
-        {path:"checkout",element:<Checkout/>}
+        {path:"/productdetails/:product_id",element:<ProductDetails/>},        {path:"aboutus",element:<AboutUs/>},
+        {path:"checkout",element:<Checkout/>},
+        {path:"/categories/:categoryId/:subCategoryId",element:<GetProducts/>},
       ],
     },
     {
