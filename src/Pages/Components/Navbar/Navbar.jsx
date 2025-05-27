@@ -14,6 +14,7 @@ function Navbar() {
   const { wishlistCount, getWishlist } = useContext(WishlistContext);
   const wishlistItemCount = wishlistCount || 0;
   const cartItemCount = cartinfo?.count || 0;
+  const [userAvatar, setUserAvatar] = useState(null);
 
   useEffect(() => {
     if (token) {
@@ -40,6 +41,14 @@ function Navbar() {
       getCartInfo();
     }
   }, [validToken, getCartInfo]);
+  
+  // Get user avatar from localStorage
+  useEffect(() => {
+    const storedAvatar = localStorage.getItem("userAvatar");
+    if (storedAvatar) {
+      setUserAvatar(storedAvatar);
+    }
+  }, []);
  
   const navigate = useNavigate();
   function LogOut() {
@@ -151,7 +160,15 @@ function Navbar() {
                       <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Cart</span>
                     </Link>
                     <Link to="/userprofile" className="group relative p-2 hover:scale-110 transition-all duration-300" aria-label="User profile">
-                      <i className="fa-solid fa-user text-lg sm:text-xl text-gray-700 dark:text-gray-200 group-hover:text-blue-500 transition-colors duration-300"></i>
+                      {userAvatar ? (
+                        <img 
+                          src={userAvatar} 
+                          alt="Profile" 
+                          className="h-12 w-12 sm:h-10 sm:w-10 rounded-full object-cover  hover:scale-110 transition-all duration-300"
+                        />
+                      ) : (
+                        <i className="fa-solid fa-user text-lg sm:text-xl text-gray-700 dark:text-gray-200 group-hover:text-blue-500 transition-colors duration-300"></i>
+                      )}
                       <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Profile</span>
                     </Link>
                   </div>

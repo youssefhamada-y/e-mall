@@ -4,124 +4,12 @@ import { Link } from 'react-router-dom';
 
 function Home() {
   // State for the interactive product showcase
-  const [activeCategory, setActiveCategory] = useState('trending');
   const [showSpotlight, setShowSpotlight] = useState(false);
-  const [spotlightProduct, setSpotlightProduct] = useState(null);
-  const [cardRotations, setCardRotations] = useState({});
+
   
-  // Simulated product data
-  const products = {
-    trending: [
-      { 
-        id: 1, 
-        name: 'Ultra Boost Sneakers', 
-        price: '$189.99', 
-        discount: '15% OFF', 
-        tags: ['New', 'Popular'], 
-        image: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-      { 
-        id: 2, 
-        name: 'Smart Home Hub', 
-        price: '$129.99', 
-        discount: '', 
-        tags: ['Tech'], 
-        image: 'https://images.unsplash.com/photo-1558089687-f282ffcbc126?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-      { 
-        id: 3, 
-        name: 'Designer Backpack', 
-        price: '$79.99', 
-        discount: '20% OFF', 
-        tags: ['Fashion'], 
-        image: 'https://images.unsplash.com/photo-1491637639811-60e2756cc1c7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-    ],
-    deals: [
-      { 
-        id: 4, 
-        name: 'Wireless Earbuds', 
-        price: '$89.99', 
-        discount: '30% OFF', 
-        tags: ['Flash Sale'], 
-        image: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-      { 
-        id: 5, 
-        name: 'Fitness Tracker', 
-        price: '$49.99', 
-        discount: '25% OFF', 
-        tags: ['Tech'], 
-        image: 'https://images.unsplash.com/photo-1576243345690-4e4b79b63eaa?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-      { 
-        id: 6, 
-        name: 'Portable Blender', 
-        price: '$34.99', 
-        discount: '40% OFF', 
-        tags: ['Kitchen'], 
-        image: 'https://images.unsplash.com/photo-1560107122-e77b0f3443a7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-    ],
-    new: [
-      { 
-        id: 7, 
-        name: 'Sustainable Yoga Mat', 
-        price: '$59.99', 
-        discount: '', 
-        tags: ['Eco-Friendly'], 
-        image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-      { 
-        id: 8, 
-        name: 'Smart Glasses', 
-        price: '$299.99', 
-        discount: '', 
-        tags: ['Tech', 'New'], 
-        image: 'https://images.unsplash.com/photo-1629694542904-c1f3d0638783?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-      { 
-        id: 9, 
-        name: 'Vegan Leather Jacket', 
-        price: '$149.99', 
-        discount: '', 
-        tags: ['Fashion'], 
-        image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' 
-      },
-    ]
-  };
+ 
+
   
-  // Handle 3D card effect
-  const handleCardMove = (e, id) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left; 
-    const y = e.clientY - rect.top;
-    
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
-    const rotateX = (y - centerY) / 10;
-    const rotateY = (centerX - x) / 10;
-    
-    setCardRotations({
-      ...cardRotations,
-      [id]: { rotateX, rotateY }
-    });
-  };
-  
-  const resetCardRotation = (id) => {
-    setCardRotations({
-      ...cardRotations,
-      [id]: { rotateX: 0, rotateY: 0 }
-    });
-  };
-  
-  // Open product spotlight
-  const openSpotlight = (product) => {
-    setSpotlightProduct(product);
-    setShowSpotlight(true);
-  };
 
   return (
     <>
@@ -162,7 +50,7 @@ function Home() {
             animate={{ y: 0 }}
             className="text-5xl md:text-7xl font-bold text-white mb-8"
           >
-            The Future of <span className="text-blue-400">Shopping</span>
+            Your Fashion <span className="text-blue-400">Destination</span>
           </motion.h2>
           <motion.p
             initial={{ y: 50, opacity: 0 }}
@@ -170,8 +58,8 @@ function Home() {
             transition={{ delay: 0.2 }}
             className="text-xl md:text-2xl text-gray-200 mb-12 max-w-3xl mx-auto"
           >
-            Experience the next generation of online shopping with AI-powered recommendations 
-            and seamless multi-store integration
+            Discover the perfect blend of local designers like Novincci and global brands 
+            like Zara and Adidas, all in one place
           </motion.p>
           <motion.div
             initial={{ scale: 0 }}
@@ -184,15 +72,14 @@ function Home() {
               className="bg-white text-cyan-900 px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transition duration-300 flex items-center gap-2"
             >
               <i className="fas fa-shopping-bag"></i>
-              Start Shopping
+              Explore stores
             </Link>
             <Link
               to="/aboutus"
               className="border-2 border-white text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-white/10 transition duration-300 flex items-center gap-2"
             >
               <i className="fas fa-info-circle"></i>
-              Learn More
-            </Link>
+About Us            </Link>
           </motion.div>
         </div>
       </motion.section>
@@ -206,40 +93,40 @@ function Home() {
             viewport={{ once: true }}
             className="text-4xl font-bold text-center mb-16"
           >
-            Why Choose Our Platform
+            The Ultimate Shopping Experience
           </motion.h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
               {
-                icon: "fas fa-robot",
-                title: "AI-Powered Shopping",
-                description: "Personalized recommendations based on your preferences and shopping history"
+                icon: "fas fa-tshirt",
+                title: "Local & Global Brands",
+                description: "Shop from local designers like Novincci alongside international favorites like Zara and Adidas"
               },
               {
                 icon: "fas fa-store",
-                title: "Multi-Store Platform",
-                description: "Access hundreds of verified stores through a single, unified platform"
+                title: "All Under One Roof",
+                description: "Access all your favorite clothing brands through our unified e-mall platform"
               },
               {
                 icon: "fas fa-shield-alt",
-                title: "Secure Transactions",
-                description: "Enterprise-grade security for all your shopping transactions"
+                title: "Authentic Products",
+                description: "Every item is guaranteed authentic with direct partnerships with brands"
               },
               {
                 icon: "fas fa-shipping-fast",
                 title: "Fast Delivery",
-                description: "Optimized logistics network for quick and reliable deliveries"
+                description: "Enjoy quick shipping options for both local and international brands"
               },
               {
                 icon: "fas fa-tags",
-                title: "Best Deals",
-                description: "Automated price comparison and exclusive platform discounts"
+                title: "Exclusive Collections",
+                description: "Access limited edition pieces and e-mall exclusive collaborations"
               },
               {
                 icon: "fas fa-headset",
-                title: "24/7 Support",
-                description: "Round-the-clock customer service with AI-assisted support"
+                title: "Dedicated Support",
+                description: "Our fashion experts are available to help with styling advice and product questions"
               }
             ].map((feature, index) => (
               <motion.div
@@ -270,30 +157,30 @@ function Home() {
             viewport={{ once: true }}
             className="text-4xl font-bold text-center mb-16"
           >
-            Trending Categories
+            Shop By Category
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[
               {
-                name: "Fashion",
-                icon: "fas fa-tshirt",
-                color: "bg-pink-500"
+                name: "Local Designers",
+                icon: "fas fa-gem",
+                color: "bg-emerald-500"
               },
               {
-                name: "Electronics",
-                icon: "fas fa-mobile-alt",
-                color: "bg-blue-500"
+                name: "High-End Brands",
+                icon: "fas fa-crown",
+                color: "bg-indigo-500"
               },
               {
-                name: "Home & Living",
-                icon: "fas fa-home",
-                color: "bg-green-500"
+                name: "Activewear",
+                icon: "fas fa-running",
+                color: "bg-orange-500"
               },
               {
-                name: "Beauty",
-                icon: "fas fa-spa",
-                color: "bg-purple-500"
+                name: "Accessories",
+                icon: "fas fa-glasses",
+                color: "bg-rose-500"
               }
             ].map((category) => (
               <motion.div
@@ -318,26 +205,30 @@ function Home() {
             viewport={{ once: true }}
             className="text-4xl font-bold text-center mb-16"
           >
-            Featured Brands
+            Our Featured Brands
           </motion.h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
               {
                 name: 'Zara',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Zara_Logo.svg/1200px-Zara_Logo.svg.png'
+                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Zara_Logo.svg/1200px-Zara_Logo.svg.png',
+                type: 'High-End'
               },
               {
-                name: 'H&M',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/H%26M-Logo.svg/1200px-H%26M-Logo.svg.png'
+                name: 'Novincci',
+                logo: 'https://novenccieg.com/cdn/shop/files/BACK_copy_ad12c809-ab61-4aa9-9319-51ea3529ee8d.png?v=1707655958&width=100',
+                type: 'Local'
               },
               {
                 name: 'Nike',
-                logo: "https://media.about.nike.com/img/cf68f541-fc92-4373-91cb-086ae0fe2f88/001-nike-logos-swoosh-black.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjo1MDAwLCJoZWlnaHQiOjI4MTN9LCJyZXNpemUiOnsid2lkdGgiOjE5MjB9fX0%3D&s=4617fc4ca48a0336d90d25001a63e65147c95885bad727aa1b5473cf672dc459", 
+                logo: "https://media.about.nike.com/img/cf68f541-fc92-4373-91cb-086ae0fe2f88/001-nike-logos-swoosh-black.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjo1MDAwLCJoZWlnaHQiOjI4MTN9LCJyZXNpemUiOnsid2lkdGgiOjE5MjB9fX0%3D&s=4617fc4ca48a0336d90d25001a63e65147c95885bad727aa1b5473cf672dc459",
+                type: 'Premium'
               },
               {
                 name: 'Adidas',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1200px-Adidas_Logo.svg.png'
+                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1200px-Adidas_Logo.svg.png',
+                type: 'Premium'
               }
             ].map((brand, index) => (
               <motion.div
@@ -346,159 +237,28 @@ function Home() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl p-8 flex items-center justify-center hover:shadow-lg transition duration-300"
+                className="bg-white rounded-xl p-8 flex flex-col items-center justify-center hover:shadow-lg transition duration-300"
               >
                 <img 
                   src={brand.logo}
                   alt={`${brand.name} logo`}
-                  className="h-12 object-contain"
+                  className="h-12 object-contain mb-3"
                 />
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                  brand.type === 'Local' ? 'bg-emerald-100 text-emerald-800' : 
+                  brand.type === 'High-End' ? 'bg-indigo-100 text-indigo-800' : 
+                  'bg-orange-100 text-orange-800'
+                }`}>
+                  {brand.type}
+                </span>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Interactive Product Showcase */}
-      <section className="py-20 bg-white relative">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12">
-            <h2 className="text-4xl font-bold mb-6 md:mb-0">
-              <span className="mr-3 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-pink-500">
-                Discover
-              </span>
-              What's Hot
-            </h2>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setActiveCategory("trending")}
-                className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeCategory === "trending"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Trending Now
-              </button>
-              <button
-                onClick={() => setActiveCategory("deals")}
-                className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeCategory === "deals"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Best Deals
-              </button>
-              <button
-                onClick={() => setActiveCategory("new")}
-                className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 ${
-                  activeCategory === "new"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Just Arrived
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <AnimatePresence mode="wait">
-              {products[activeCategory].map((product) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.5 }}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden group"
-                  style={{
-                    perspective: "1000px",
-                    transformStyle: "preserve-3d",
-                  }}
-                  onMouseMove={(e) => handleCardMove(e, product.id)}
-                  onMouseLeave={() => resetCardRotation(product.id)}
-                >
-                  <div
-                    className="transition-all duration-200 ease-out"
-                    style={{
-                      transform: cardRotations[product.id]
-                        ? `rotateX(${
-                            cardRotations[product.id].rotateX
-                          }deg) rotateY(${
-                            cardRotations[product.id].rotateY
-                          }deg)`
-                        : "none",
-                      transformStyle: "preserve-3d",
-                    }}
-                  >
-                    <div className="relative h-72 overflow-hidden">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                      {product.discount && (
-                        <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                          {product.discount}
-                        </div>
-                      )}
-                      <div className="absolute top-4 left-4 flex flex-col gap-2">
-                        {product.tags.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="bg-white/80 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-xs font-medium"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                        <button
-                          onClick={() => openSpotlight(product)}
-                          className="w-full py-3 bg-white/90 backdrop-blur-sm rounded-full font-medium text-gray-900 transform translate-y-10 group-hover:translate-y-0 transition-transform duration-300"
-                        >
-                          Quick View
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-semibold mb-2">
-                        {product.name}
-                      </h3>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xl font-bold text-indigo-600">
-                          {product.price}
-                        </span>
-                        <button
-                          className="w-10 h-10 rounded-full bg-gray-100 hover:bg-indigo-100 flex items-center justify-center transition-colors duration-300"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Add to cart logic
-                          }}
-                        >
-                          <i className="fas fa-shopping-bag text-indigo-600"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-
-          <div className="flex justify-center mt-12">
-            <Link
-              to={`/products/${activeCategory}`}
-              className="inline-flex items-center text-indigo-600 font-semibold hover:text-indigo-800 transition-colors"
-            >
-              View All <i className="fas fa-arrow-right ml-2"></i>
-            </Link>
-          </div>
-        </div>
-      </section>
+      
+    
 
       {/* Product Spotlight Modal */}
       <AnimatePresence>
@@ -563,8 +323,8 @@ function Home() {
                 <div className="mb-6">
                   <h4 className="font-semibold mb-2">Description</h4>
                   <p className="text-gray-600">
-                    Premium quality product with excellent craftsmanship and attention to detail.
-                    This item combines style, functionality and durability for the perfect user experience.
+                    Premium quality clothing with excellent craftsmanship and attention to detail.
+                    This piece combines style, comfort and durability for the perfect addition to your wardrobe.
                   </p>
                 </div>
                 

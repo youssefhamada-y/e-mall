@@ -320,13 +320,14 @@ function Cart() {
               </motion.button>
             </Link>
             
-            <Link to="/stores">
+            {/* Add this inside the Cart Summary section, after the "Continue Shopping" button */}
+            <Link to="/orders">
               <motion.button 
                 className="mt-4 w-full bg-white border border-gray-300 text-gray-700 text-center py-3 rounded-xl font-medium hover:bg-gray-50 transition-all duration-300 flex items-center justify-center"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <i className="fas fa-arrow-left mr-2"></i> Continue Shopping
+                <i className="fas fa-clipboard-list mr-2"></i> View Order History
               </motion.button>
             </Link>
           </motion.div>
@@ -337,4 +338,3 @@ function Cart() {
 }
 
 export default Cart;
-// ... existing code ...

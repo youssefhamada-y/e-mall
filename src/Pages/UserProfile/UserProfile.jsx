@@ -1,60 +1,214 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
-
+import axios from "axios";
+import { usercontext } from "../Components/Context/UserContext/UserContext";
+import Swal from "sweetalert2";
 function UserProfile() {
   const [activeTab, setActiveTab] = useState("profile");
   const [userAvatar, setUserAvatar] = useState(null);
+  const {token}=useContext(usercontext)
   const [showFullSizeImage, setShowFullSizeImage] = useState(false);
+  const [userData, setUserData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: ""
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    phone: "",
+    address: ""
+  });
+  const [passwordData, setPasswordData] = useState({
+    old_password: "",
+    new_password: "",
+    confirm_password: ""
+  });
   const fileInputRef = useRef(null);
-
   // Load saved avatar from localStorage on component mount
   useEffect(() => {
     const savedAvatar = localStorage.getItem('userAvatar');
     if (savedAvatar) {
       setUserAvatar(savedAvatar);
     }
+    
+    // Load user data from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user) {
+      setUserData(user);
+      setEditFormData({
+        phone: user.phone || "",
+        address: user.address || ""
+      });
+    }
   }, []);
-
-  // Mock user data for design
-  const userData = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "0123456789",
-    address: "123 Main St, New York, NY 10001"
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await axios.post('http://localhost/eMall/user/editUser.php', 
+        editFormData,
+        {
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      if (response.data.status === "success") {
+        // Update local user data
+        const updatedUserData = {
+          ...userData,
+          phone: editFormData.phone,
+          address: editFormData.address
+        };
+        
+        // Update state and localStorage
+        setUserData(updatedUserData);
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        setIsEditing(false);
+        
+        // Using SweetAlert2 for beautiful alerts instead of toast
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'Profile updated successfully!',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          background: '#ffffff',
+          iconColor: '#4CAF50',
+          customClass: {
+            popup: 'animated fadeInDown',
+            title: 'text-green-600',
+            content: 'text-gray-700'
+          }
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Update Failed',
+          text: 'Failed to update profile: ' + response.data.message,
+          confirmButtonColor: '#3085d6',
+          confirmButtonText: 'Try Again',
+          background: '#ffffff',
+          iconColor: '#d33',
+          customClass: {
+            popup: 'animated fadeInDown'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'An error occurred while updating your profile. Please try again.',
+        footer: '<span class="text-gray-500">Check your connection and try again</span>',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Dismiss',
+        background: '#ffffff',
+        iconColor: '#d33',
+        customClass: {
+          popup: 'animated fadeInDown'
+        }
+      });
+    }
   };
 
-  // Mock orders data for design
-  const userOrders = [
-    {
-      id: "ORD-12345",
-      date: "2023-05-15",
-      status: "Delivered",
-      total: 129.99,
-      items: [
-        { id: 1, name: "Wireless Headphones", price: 79.99, quantity: 1 },
-        { id: 2, name: "Phone Case", price: 25.00, quantity: 2 }
-      ]
-    },
-    {
-      id: "ORD-12346",
-      date: "2023-06-20",
-      status: "Processing",
-      total: 349.99,
-      items: [
-        { id: 3, name: "Smart Watch", price: 349.99, quantity: 1 }
-      ]
-    },
-    {
-      id: "ORD-12347",
-      date: "2023-07-05",
-      status: "Shipped",
-      total: 89.97,
-      items: [
-        { id: 4, name: "T-Shirt", price: 29.99, quantity: 3 }
-      ]
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    
+    // Validate passwords match
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Password Mismatch',
+        text: 'New password and confirmation do not match',
+        confirmButtonColor: '#3085d6',
+        background: '#ffffff',
+        iconColor: '#d33'
+      });
+      return;
     }
-  ];
+    
+    try {
+      const response = await axios.post('http://localhost/eMall/user/changePassword.php', 
+        passwordData,
+        {
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (response.data.status === "success") {
+        // Reset form
+        setPasswordData({
+          old_password: "",
+          new_password: "",
+          confirm_password: ""
+        });
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'Password updated successfully!',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          background: '#ffffff',
+          iconColor: '#4CAF50',
+          customClass: {
+            popup: 'animated fadeInDown',
+            title: 'text-green-600',
+            content: 'text-gray-700'
+          }
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Update Failed',
+          text: response.data.message || 'Failed to update password',
+          confirmButtonColor: '#3085d6',
+          confirmButtonText: 'Try Again',
+          background: '#ffffff',
+          iconColor: '#d33'
+        });
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'An error occurred while updating your password. Please try again.',
+        footer: '<span class="text-gray-500">Check your connection and try again</span>',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Dismiss',
+        background: '#ffffff',
+        iconColor: '#d33'
+      });
+    }
+  };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Rest of the handlers remain the same
   const handleViewImage = () => {
     if (userAvatar) {
       setShowFullSizeImage(true);
@@ -72,7 +226,6 @@ function UserProfile() {
       reader.onload = (e) => {
         const newAvatarUrl = e.target.result;
         setUserAvatar(newAvatarUrl);
-        // Save to localStorage to persist after logout
         localStorage.setItem('userAvatar', newAvatarUrl);
       };
       reader.readAsDataURL(file);
@@ -86,6 +239,7 @@ function UserProfile() {
   const renderProfile = () => (
     <div className="bg-white rounded-lg shadow-md p-6 dark:bg-gray-800">
       <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+        {/* Avatar section remains the same */}
         <div className="relative">
           <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-300 hover:border-blue-500 transition-colors">
             {userAvatar ? (
@@ -131,42 +285,79 @@ function UserProfile() {
         </div>
         
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{userData.name}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                <p className="font-medium text-gray-800 dark:text-white">{userData.email}</p>
+          {!isEditing ? (
+            <>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{userData.name}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
+                    <p className="font-medium text-gray-800 dark:text-white">{userData.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+                    <p className="font-medium text-gray-800 dark:text-white">{userData.phone}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Address</p>
+                    <p className="font-medium text-gray-800 dark:text-white">{userData.address || "No address provided"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Member Since</p>
+                    <p className="font-medium text-gray-800 dark:text-white">{new Date(userData.created_at).toLocaleDateString()}</p>
+                  </div>
+                </div>
               </div>
-              
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                <p className="font-medium text-gray-800 dark:text-white">{userData.phone}</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  Edit Profile
+                </button>
               </div>
-            </div>
-            
-            <div className="space-y-3">
+            </>
+          ) : (
+            <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Address</p>
-                <p className="font-medium text-gray-800 dark:text-white">{userData.address || "No address provided"}</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={editFormData.phone}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
               </div>
-              
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Member Since</p>
-                <p className="font-medium text-gray-800 dark:text-white">May 2023</p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={editFormData.address}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
               </div>
-            </div>
-          </div>
-          
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-              Edit Profile
-            </button>
-            <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
-              Change Password
-            </button>
-          </div>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
 
@@ -193,67 +384,11 @@ function UserProfile() {
     </div>
   );
 
+  // Rest of the component remains the same
   const renderOrderHistory = () => (
     <div className="bg-white rounded-lg shadow-md p-6 dark:bg-gray-800">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Order History</h2>
-      
-      {userOrders.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 dark:text-gray-400">You haven't placed any orders yet.</p>
-          <Link to="/categories" className="mt-4 inline-block px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-            Start Shopping
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {userOrders.map((order) => (
-            <div key={order.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex flex-wrap justify-between items-center mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-800 dark:text-white">{order.id}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Ordered on {order.date}</p>
-                </div>
-                <div className="mt-2 sm:mt-0">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    order.status === 'Delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                    order.status === 'Shipped' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                  }`}>
-                    {order.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Items</h4>
-                <ul className="space-y-2">
-                  {order.items.map((item) => (
-                    <li key={item.id} className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {item.name} x{item.quantity}
-                      </span>
-                      <span className="font-medium text-gray-800 dark:text-white">
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4 flex justify-between items-center">
-                <span className="font-medium text-gray-700 dark:text-gray-300">Total</span>
-                <span className="font-bold text-lg text-gray-800 dark:text-white">${order.total.toFixed(2)}</span>
-              </div>
-              
-              <div className="mt-4 flex justify-end">
-                <Link to={`/orders/${order.id}`} className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
-                  View Details
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <p className="text-gray-500 dark:text-gray-400">Your order history will appear here.</p>
     </div>
   );
 
@@ -267,7 +402,85 @@ function UserProfile() {
   const renderSettings = () => (
     <div className="bg-white rounded-lg shadow-md p-6 dark:bg-gray-800">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Account Settings</h2>
-      <p className="text-gray-500 dark:text-gray-400">Account settings will appear here.</p>
+      
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Change Password</h3>
+        <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Current Password</label>
+            <div className="relative">
+              <input
+                type={passwordData.showOldPassword ? "text" : "password"}
+                name="old_password"
+                value={passwordData.old_password}
+                onChange={handlePasswordInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                onClick={() => setPasswordData({...passwordData, showOldPassword: !passwordData.showOldPassword})}
+              >
+                <i className={`fas ${passwordData.showOldPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
+            <div className="relative">
+              <input
+                type={passwordData.showNewPassword ? "text" : "password"}
+                name="new_password"
+                value={passwordData.new_password}
+                onChange={handlePasswordInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                onClick={() => setPasswordData({...passwordData, showNewPassword: !passwordData.showNewPassword})}
+              >
+                <i className={`fas ${passwordData.showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm New Password</label>
+            <div className="relative">
+              <input
+                type={passwordData.showConfirmPassword ? "text" : "password"}
+                name="confirm_password"
+                value={passwordData.confirm_password}
+                onChange={handlePasswordInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                onClick={() => setPasswordData({...passwordData, showConfirmPassword: !passwordData.showConfirmPassword})}
+              >
+                <i className={`fas ${passwordData.showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
+          </div>
+          <div>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            >
+              Update Password
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <div>
+        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Notification Preferences</h3>
+        <p className="text-gray-500 dark:text-gray-400">Notification settings will appear here.</p>
+      </div>
     </div>
   );
 
@@ -295,6 +508,7 @@ function UserProfile() {
           >
             Profile
           </button>
+          <Link to="/orders" >
           <button
             onClick={() => setActiveTab("orders")}
             className={`px-6 py-3 font-medium text-sm transition-colors ${
@@ -305,6 +519,10 @@ function UserProfile() {
           >
             Order History
           </button>
+
+          </Link>
+         
+          <Link to="/wishlist">
           <button
             onClick={() => setActiveTab("wishlist")}
             className={`px-6 py-3 font-medium text-sm transition-colors ${
@@ -315,6 +533,8 @@ function UserProfile() {
           >
             Wishlist
           </button>
+          </Link>
+         
           <button
             onClick={() => setActiveTab("settings")}
             className={`px-6 py-3 font-medium text-sm transition-colors ${
