@@ -5,6 +5,7 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import Loading from '../Loading/Loading';
 import { WishlistContext } from '../Components/Context/WishlistContext/WishlistContext';
+import { cartcontext } from '../Components/Context/CartContext/CartContext';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const Wishlist = () => {
   const { wishlist, removeFromWishlist, loading } = useContext(WishlistContext);
+  const { addProductToCart } = useContext(cartcontext);
   const [recommendedItems] = useState([]);
 
   const handleRemoveFromWishlist = (productId,) => {
@@ -25,6 +27,11 @@ const Wishlist = () => {
       draggable: true,
       progress: undefined,
     });
+  };
+
+  // Handle add to cart
+  const handleAddToCart = (productId) => {
+    addProductToCart({ product_id: productId, quantity: 1 });
   };
 
   if (loading) {
@@ -146,6 +153,7 @@ const Wishlist = () => {
                       <motion.button 
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        onClick={() => handleAddToCart(item.product_id)}
                         disabled={item.stock_quantity <= 0}
                         className={`w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-all duration-300 ${
                           item.stock_quantity > 0 

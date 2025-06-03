@@ -7,6 +7,7 @@ import { usercontext } from "../Components/Context/UserContext/UserContext";
 import { WishlistContext } from "../Components/Context/WishlistContext/WishlistContext";
 import { cartcontext } from "../Components/Context/CartContext/CartContext";
 import { toast } from 'react-toastify';
+import { CompareContext } from '../Components/Context/CompareContext/CompareContext';
 
 function ProductDetails() {
   // Log all available route parameters to help debug
@@ -31,6 +32,7 @@ function ProductDetails() {
   const { token } = useContext(usercontext);
   const { wishlist, addToWishlist, removeFromWishlist } = useContext(WishlistContext);
   const { addProductToCart } = useContext(cartcontext);
+  const { addToCompare, removeFromCompare, compareItems, compareCount } = useContext(CompareContext);
   
   // Check if we already have the product data in location state
   useEffect(() => {
@@ -95,6 +97,36 @@ function ProductDetails() {
       } catch (error) {
         console.error("Error adding to cart:", error);
         toast.error("Failed to add item to cart");
+      }
+    }
+  };
+  
+  // Function to check if a product is in compare list
+  const isInCompare = (productId) => {
+    return compareItems?.some(item => item.id === productId);
+  };
+  
+  // Function to toggle compare status
+  const handleCompareToggle = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (!token) {
+      toast.error("Please login to add items to compare");
+      return;
+    }
+    
+    if (product) {
+      if (isInCompare(product.id)) {
+        removeFromCompare(product.id);
+      } else {
+        if (compareCount >= 4) {
+          toast.error("You can only compare up to 4 items");
+          return;
+        }
+        addToCompare(product.id);
       }
     }
   };
@@ -496,6 +528,39 @@ function ProductDetails() {
                 >
                   <i className={`${isInWishlist(product.id) ? 'fas' : 'far'} fa-heart mr-2`}></i> 
                   {isInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                </motion.button>
+              </div>
+              
+              {/* Compare Button */}
+              <div className="mb-6">
+                <motion.button 
+                  className={`w-full relative overflow-hidden py-4 px-6 rounded-xl font-medium flex items-center justify-center
+                    transition-all duration-300 ease-in-out
+                    ${isInCompare(product.id)
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl shadow-indigo-200/50'
+                      : 'bg-white text-gray-700 border-2 border-indigo-200 hover:border-indigo-400'}
+                    hover:shadow-2xl transform hover:-translate-y-1`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCompareToggle}
+                >
+                  {/* Shimmer Effect */}
+                  <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent 
+                    transform translate-x-[-200%] ${isInCompare(product.id) ? 'animate-shimmer' : ''}`}></div>
+                  
+                  {/* Icon with animated transition */}
+                  <div className={`relative flex items-center justify-center w-10 h-10 rounded-full mr-3 transition-all duration-300
+                    ${isInCompare(product.id) 
+                      ? 'bg-white/20 backdrop-blur-sm' 
+                      : 'bg-indigo-50'}`}>
+                    <i className={`fas fa-random text-xl transition-all duration-300 
+                      ${isInCompare(product.id) ? 'text-white rotate-180' : 'text-indigo-600'}`}></i>
+                  </div>
+                  
+                  {/* Text with animated transition */}
+                  <span className="font-semibold text-lg">
+                    {isInCompare(product.id) ? 'Remove from Compare' : 'Add to Compare'}
+                  </span>
                 </motion.button>
               </div>
               

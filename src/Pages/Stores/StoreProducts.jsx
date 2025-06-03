@@ -6,7 +6,7 @@ import { usercontext } from "../Components/Context/UserContext/UserContext";
 import { WishlistContext } from "../Components/Context/WishlistContext/WishlistContext";
 import { cartcontext } from "../Components/Context/CartContext/CartContext"; // Added missing import
 import { toast } from "react-toastify";
-
+import { CompareContext } from "../Components/Context/CompareContext/CompareContext";
 export default function StoreProducts() {
   // Get store ID from URL parameters
   const { store_id } = useParams();
@@ -14,6 +14,11 @@ export default function StoreProducts() {
   const storeData = location.state?.storeData;
   const { token } = useContext(usercontext);
   const { wishlist, addToWishlist, removeFromWishlist } = useContext(WishlistContext);
+  const {  compareItems,
+    compareCount,
+    getCompareItems,
+    addToCompare,
+    removeFromCompare, } = useContext(CompareContext);
   const { addProductToCart } = useContext(cartcontext); // Using cartcontext
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -61,6 +66,37 @@ export default function StoreProducts() {
       toast.success("Item added to wishlist");
     }
   }, [token, isInWishlist, addToWishlist, removeFromWishlist]);
+
+  // Function to handle adding a product to the compare list
+  const handleAddToCompare = useCallback((productId, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation(); 
+    }
+
+    if (!token) {
+      toast.error("Please login to add items to compare");
+      return;
+    }
+
+    const isProductInCompare = compareItems?.some(item => item.product_id === productId);
+
+    if (isProductInCompare) {
+      removeFromCompare(productId);
+      toast.success("Item removed from compare list", {
+        position: "bottom-center",
+        icon: "🗑️",
+        duration: 2000
+      });
+    } else {
+      addToCompare(productId);
+      toast.success("Item added to compare list", {
+        position: "bottom-center", 
+        icon: "🔄",
+        duration: 2000
+      });
+    }
+  }, [token, compareItems, addToCompare, removeFromCompare]);
   
   // Function to handle adding a product to the cart
   const handleAddToCart = async (productId, e) => {
@@ -1041,17 +1077,15 @@ export default function StoreProducts() {
                               <span className="text-xs mt-1">Quick View</span>
                             </motion.button>
                             <motion.button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                // Compare functionality
-                              }}
-                              className="text-gray-500 hover:text-blue-600 transition-colors flex flex-col items-center"
+                              onClick={(e) => handleAddToCompare(product.id, e)}
+                              className={`text-gray-500 hover:text-blue-600 transition-colors flex flex-col items-center ${
+                                compareItems?.some(item => item.product_id === product.id) ? 'text-blue-600' : ''
+                              }`}
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               aria-label="Compare product"
                             >
-                              <i className="fas fa-exchange-alt text-lg"></i>
+                              <i className={`fas fa-exchange-alt text-lg ${compareItems?.some(item => item.product_id === product.id) ? 'text-blue-600' : ''}`}></i>
                               <span className="text-xs mt-1">Compare</span>
                             </motion.button>
                           </div>

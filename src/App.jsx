@@ -29,6 +29,7 @@ import StoreProducts from "./Pages/Stores/StoreProducts";
 import Cartprovider from "./Pages/Components/Context/CartContext/CartContext";
 import { WishlistProvider } from "./Pages/Components/Context/WishlistContext/WishlistContext";
 import GetProducts from "./Pages/Categories/GetProducts";
+import Compareprovider from "./Pages/Components/Context/CompareContext/CompareContext";
 
 function App() {
   const routes = createBrowserRouter([
@@ -76,8 +77,10 @@ function App() {
     <Userprovider>
       <Cartprovider>
         <WishlistProvider>
+         <Compareprovider>
           <RouterProvider router={routes}></RouterProvider>
           <Toaster />
+         </Compareprovider>
         </WishlistProvider>
       </Cartprovider>
     </Userprovider>

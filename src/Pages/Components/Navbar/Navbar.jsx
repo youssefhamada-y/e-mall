@@ -4,6 +4,7 @@ import { usercontext } from "../Context/UserContext/UserContext";
 import logo from "../../../assets/images/logonew.png";
 import { cartcontext } from "../Context/CartContext/CartContext";
 import { WishlistContext } from "../Context/WishlistContext/WishlistContext";
+import { CompareContext } from "../Context/CompareContext/CompareContext";
 
 function Navbar() {
   
@@ -12,8 +13,10 @@ function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { getCartInfo, cartinfo } = useContext(cartcontext);
   const { wishlistCount, getWishlist } = useContext(WishlistContext);
+  const { compareCount, getCompareItems } = useContext(CompareContext);
   const wishlistItemCount = wishlistCount || 0;
   const cartItemCount = cartinfo?.count || 0;
+  const compareItemCount = compareCount || 0;
   const [userAvatar, setUserAvatar] = useState(null);
 
   useEffect(() => {
@@ -41,6 +44,13 @@ function Navbar() {
       getCartInfo();
     }
   }, [validToken, getCartInfo]);
+  
+  // Fetch compare items when component mounts or validToken changes
+  useEffect(() => {
+    if (validToken) {
+      getCompareItems();
+    }
+  }, [validToken, getCompareItems]);
   
   // Get user avatar from localStorage
   useEffect(() => {
@@ -143,6 +153,9 @@ function Navbar() {
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <Link to="/compare" className="group relative p-2 hover:scale-110 transition-all duration-300" aria-label="Compare products">
                       <i className="fa-solid fa-code-compare text-lg sm:text-xl text-gray-700 dark:text-gray-200 group-hover:text-blue-500 transition-colors duration-300"></i>
+                      <span className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-md">
+                        {compareItemCount}
+                      </span>
                       <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Compare</span>
                     </Link>
                     <Link to="/wishlist" className="group relative p-2 hover:scale-110 transition-all duration-300" aria-label="Wishlist">

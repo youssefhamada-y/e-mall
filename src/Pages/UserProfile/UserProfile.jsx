@@ -14,6 +14,7 @@ function UserProfile() {
     phone: "",
     address: ""
   });
+  
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState({
     phone: "",
@@ -25,6 +26,48 @@ function UserProfile() {
     confirm_password: ""
   });
   const fileInputRef = useRef(null);
+  
+  // Fetch user data from API
+  const fetchUserData = async () => {
+    try {
+      const response = await axios.get('http://localhost/eMall/user/getSpecifcUser.php', {
+        headers: {
+          'Authorization': token
+        }
+      });
+      
+      if (response.data.status === "success") {
+        const user = response.data.user;
+        setUserData(user);
+        setEditFormData({
+          phone: user.phone || "",
+          address: user.address || ""
+        });
+        
+        // Update localStorage with fresh data
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        console.error('Failed to fetch user data');
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load user profile data',
+          background: '#ffffff',
+          iconColor: '#d33'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Connection Error',
+        text: 'Could not connect to the server. Please try again later.',
+        background: '#ffffff',
+        iconColor: '#d33'
+      });
+    }
+  };
+  
   // Load saved avatar from localStorage on component mount
   useEffect(() => {
     const savedAvatar = localStorage.getItem('userAvatar');
@@ -32,7 +75,10 @@ function UserProfile() {
       setUserAvatar(savedAvatar);
     }
     
-    // Load user data from localStorage
+    // Fetch user data from API
+    fetchUserData();
+    
+    // Fallback to localStorage if API fails
     const user = JSON.parse(localStorage.getItem('user'));
     if (user) {
       setUserData(user);
@@ -41,7 +87,8 @@ function UserProfile() {
         address: user.address || ""
       });
     }
-  }, []);
+  }, [token]);
+  
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     
